@@ -20,6 +20,12 @@ sudo mkdir -p "$DEPLOY"
 sudo tar -xzf "$TGZ" -C "$DEPLOY"
 sudo chown -R "$(whoami):$(id -gn)" "$DEPLOY"
 
+# Bind-mounted Postgres data must remain owned by the supabase/postgres image user (uid 105).
+DB_DATA="${DEPLOY}/infra/supabase/docker/volumes/db/data"
+if [[ -d "$DB_DATA" ]]; then
+  sudo chown -R 105:106 "$DB_DATA"
+fi
+
 if test -f /tmp/sis27-env-backup; then
   sudo install -o "$(whoami)" -g "$(id -gn)" -m 600 /tmp/sis27-env-backup "$ENV"
 fi
