@@ -2,6 +2,16 @@
 
 Internal data platform POC. Central Postgres + Supabase (self-hosted) with RLS; satellite apps in this or other repos.
 
+## Background
+
+SIS27 is a demo / proof of concept for an internal data platform for a client company with roughly 300 employees. The platform should let employees enter data, create workflows, and manage business processes on the client's own on-premise infrastructure.
+
+The core architecture is a centralized, secure, self-hosted Supabase / Postgres deployment. Treat Postgres as the shared system of record and RLS as a core platform invariant. Client developers should be able to build apps for specific use cases; those apps may own their own tables and migrations.
+
+SIS27 itself should contain only a few built-in apps: the dashboard entrypoint in `apps/web`, and potentially an admin app later once scope is clearer. Other apps should generally live in separate git repositories. It is not decided yet whether they should be completely separate or attached to this repo as submodules.
+
+This POC should stay as simple as possible while exploring the platform idea.
+
 ## Repo layout
 
 | Path | Purpose |

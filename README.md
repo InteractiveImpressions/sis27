@@ -2,6 +2,16 @@
 
 Monorepo for a minimal on-prem stack: **self-hosted Supabase** (Postgres + Auth + Kong + …), a **Nuxt** shell app (sign in / sign up → welcome), SQL **migrations** with RLS, and **Docker Compose** + **GitHub Actions** deploy to a single VM.
 
+## Project context
+
+SIS27 is a demo / proof of concept for an internal data platform for a client company with roughly 300 employees. The long-term goal is to give employees a secure place to enter data, create workflows, and manage business processes on infrastructure owned by the client.
+
+The central architectural idea is a self-hosted Supabase deployment running on-premise, with Postgres as the shared system of record and Row Level Security (RLS) as a core boundary. SIS27 should provide the central platform foundation, while client developers can build use-case-specific apps around it. Those apps may own their own Postgres tables and migrations.
+
+SIS27 itself should stay small. The built-in app scope currently includes a central dashboard entrypoint that links to other apps, and possibly an admin app once that scope is clearer. Additional apps are expected to live outside this platform repo, either as separate repositories or, if that proves useful later, as submodules.
+
+For this POC, prefer the simplest useful implementation. The repo exists to explore the architecture and validate the operating model before locking in a larger platform shape.
+
 ## What’s in the repo
 
 | Area | Path |
