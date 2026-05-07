@@ -1,0 +1,16 @@
+{
+  "name": "sis27",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "./scripts/dev.sh",
+    "dev:down": "./scripts/dev-down.sh",
+    "dev:web": "pnpm --filter @sis27/web dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

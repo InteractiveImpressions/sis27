@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Omit 'environment' until you create it in GitHub; add for approval gates later.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy on VM
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+          GCP_ZONE: ${{ secrets.GCP_ZONE }}
+          GCP_INSTANCE: ${{ secrets.GCP_INSTANCE }}
+          SIS27_DEPLOY_PATH: ${{ secrets.SIS27_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          test -n "${GCP_PROJECT:-}" && test -n "${GCP_ZONE:-}" && test -n "${GCP_INSTANCE:-}" && test -n "${SIS27_DEPLOY_PATH:-}"
+          gcloud compute ssh "${GCP_INSTANCE}" \
+            --project="${GCP_PROJECT}" \
+            --zone="${GCP_ZONE}" \
+            --quiet \
+            --command="set -euo pipefail; cd '${SIS27_DEPLOY_PATH}'; git pull; chmod +x infra/deploy/scripts/deploy.sh; ./infra/deploy/scripts/deploy.sh"

@@ -1,0 +1,57 @@
+# Merge with the vendored Supabase stack (run from repo root with SIS27_ROOT set):
+#   export SIS27_ROOT="$(pwd)"
+#   docker compose --env-file infra/supabase/docker/.env \
+#     -f infra/supabase/docker/docker-compose.yml \
+#     -f infra/deploy/docker-compose.sis27.yml \
+#     -p sis27 up -d
+#
+# Compose resolves relative paths from the *first* compose file’s directory, so this overlay
+# uses SIS27_ROOT for the web build and Caddy bind mount. Scripts in infra/deploy/scripts set it.
+#
+# Required in infra/supabase/docker/.env (see infra/deploy/env.supabase.sis27.example):
+#   SIS27_PUBLIC_URL — browser-facing origin (same host users type in the address bar)
+
+services:
+  kong:
+    ports: !reset []
+
+  # First boot runs many DB migrations; default health window is too short and breaks `studio → kong` startup.
+  analytics:
+    healthcheck:
+      start_period: 120s
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  web:
+    build:
+      context: ${SIS27_ROOT:?Set SIS27_ROOT to the repository root (see infra/deploy/scripts/compose.sh)}
+      dockerfile: apps/web/Dockerfile
+      args:
+        NUXT_PUBLIC_SUPABASE_URL: ${SIS27_PUBLIC_URL}
+        NUXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+    container_name: sis27-web
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      NUXT_PUBLIC_SUPABASE_URL: ${SIS27_PUBLIC_URL}
+      NUXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+    depends_on:
+      kong:
+        condition: service_healthy
+
+  sis27-caddy:
+    image: caddy:2-alpine
+    container_name: sis27-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${SIS27_ROOT}/infra/deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      web:
+        condition: service_started
+      kong:
+        condition: service_healthy
