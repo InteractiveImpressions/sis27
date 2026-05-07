@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepare": "tsc -p tsconfig.json",
+    "prepare": "node -e \"const fs=require('fs'),{execSync}=require('child_process'); if(fs.existsSync('tsconfig.json')) execSync('tsc -p tsconfig.json',{stdio:'inherit'});\"",
     "prepublishOnly": "pnpm run build",
     "lint": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit"
