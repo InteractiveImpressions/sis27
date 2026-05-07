@@ -8,6 +8,38 @@ export type ContactRole = typeof ROLE_CONTACT_USER | typeof ROLE_CONTACT_ADMIN;
 export const APP_CONTACT_ID = "contact" as const;
 export const APP_CONTACT_BASE_PATH = "/contact" as const;
 
+/** Default dev origins when dashboard and Contact run on separate ports (see root README). */
+export const DEV_DASHBOARD_ORIGIN = "http://127.0.0.1:3000" as const;
+export const DEV_CONTACT_ORIGIN = "http://127.0.0.1:3001" as const;
+
+/** Join origin (no trailing slash) and path (leading slash). */
+export function absoluteAppUrl(origin: string, path: string): string {
+  const o = origin.replace(/\/$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${o}${p}`;
+}
+
+/**
+ * Link target for the Contact app from the dashboard.
+ * Production: same-origin relative path only. Local split dev: full URL when `contactDevOrigin` is set.
+ */
+export function contactAppHref(options?: { contactDevOrigin?: string; basePath?: string }): string {
+  const basePath = options?.basePath ?? APP_CONTACT_BASE_PATH;
+  const dev = options?.contactDevOrigin?.trim();
+  if (dev) return absoluteAppUrl(dev, basePath);
+  return basePath;
+}
+
+/**
+ * Link target for the Nuxt dashboard from the Contact app.
+ * Production: `/`. Local split dev: full dashboard origin when `dashboardDevOrigin` is set.
+ */
+export function dashboardAppHref(dashboardDevOrigin?: string): string {
+  const dev = dashboardDevOrigin?.trim();
+  if (dev) return `${dev.replace(/\/$/, "")}/`;
+  return "/";
+}
+
 export function hasContactUserRole(roles: readonly string[] | null | undefined): boolean {
   return roles?.includes(ROLE_CONTACT_USER) ?? false;
 }

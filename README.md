@@ -45,6 +45,8 @@ pnpm dev:down
 
 To run **only** the Contact app with the **same** local Docker stack (Supabase + migrations) without starting Nuxt, use **`pnpm dev:contact`** from the repo root (or run **`pnpm dev`** inside `apps/contact`). Both start the stack then Next on port **3001**; open `http://127.0.0.1:3001/contact`. Sign in via the dashboard at `http://127.0.0.1:3000` with **`pnpm dev:web`** in another terminal if you need the Nuxt shell, or use the same session cookies if you already signed in on `:3000`.
 
+**Split dev ports (default):** the dashboard links to **`http://127.0.0.1:3001/contact`** in Nuxt development mode, and Contact links back to **`http://127.0.0.1:3000/`**, so cross-app navigation matches `pnpm dev:web` (port 3000) and Contact on 3001. Override with **`NUXT_PUBLIC_CONTACT_DEV_ORIGIN`** (dashboard → contact) or **`NEXT_PUBLIC_DASHBOARD_DEV_URL`** (contact → dashboard) if you use different ports. In production (single origin behind Caddy) both apps use **relative** `/` and `/contact` only.
+
 `pnpm dev:down` stops and removes the local SIS27 Docker Compose stack started for development.
 
 By default it uses [`infra/supabase/docker/.env.example`](infra/supabase/docker/.env.example) and sets `ENABLE_EMAIL_AUTOCONFIRM=true` for a quick local POC. For persistent local secrets, create `infra/supabase/docker/.env`; the script will prefer that file automatically.

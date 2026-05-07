@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { APP_CONTACT_BASE_PATH, hasContactAccess } from "@sis27/platform";
+import { contactAppHref, hasContactAccess } from "@sis27/platform";
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
+const runtimeConfig = useRuntimeConfig();
 
 const mode = ref<"signin" | "signup">("signin");
 const email = ref("");
@@ -25,6 +26,12 @@ const displayUsername = computed(() => {
 });
 
 const showContactLink = computed(() => hasContactAccess(roles.value));
+
+const contactAppUrl = computed(() =>
+  contactAppHref({
+    contactDevOrigin: runtimeConfig.public.contactDevOrigin as string | undefined,
+  }),
+);
 
 async function loadRoles() {
   if (!user.value) {
@@ -122,7 +129,7 @@ async function signOut() {
 
       <div v-if="showContactLink" class="apps">
         <p class="apps__title">Apps</p>
-        <a class="app-card" :href="APP_CONTACT_BASE_PATH">
+        <a class="app-card" :href="contactAppUrl">
           <span class="app-card__name">Contact</span>
           <span class="app-card__hint">Open directory and manage your contact details</span>
         </a>
