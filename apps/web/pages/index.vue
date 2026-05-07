@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { APP_CONTACT_BASE_PATH, hasContactAccess } from "@sis27/platform";
+
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 
@@ -9,6 +11,9 @@ const displayName = ref("");
 const loading = ref(false);
 const errorMessage = ref<string | null>(null);
 
+const roles = ref<string[]>([]);
+const rolesState = ref<"idle" | "loading" | "ready">("idle");
+
 const displayUsername = computed(() => {
   const u = user.value;
   if (!u) return "";
@@ -18,6 +23,40 @@ const displayUsername = computed(() => {
   if (u.email) return u.email.split("@")[0] ?? u.email;
   return "there";
 });
+
+const showContactLink = computed(() => hasContactAccess(roles.value));
+
+async function loadRoles() {
+  if (!user.value) {
+    roles.value = [];
+    rolesState.value = "idle";
+    return;
+  }
+  rolesState.value = "loading";
+  errorMessage.value = null;
+  const { data, error } = await supabase.rpc("current_user_roles");
+  if (error) {
+    errorMessage.value = error.message;
+    roles.value = [];
+    rolesState.value = "ready";
+    return;
+  }
+  const list = Array.isArray(data) ? (data as string[]) : [];
+  roles.value = list;
+  rolesState.value = "ready";
+}
+
+watch(
+  user,
+  (u) => {
+    if (u) void loadRoles();
+    else {
+      roles.value = [];
+      rolesState.value = "idle";
+    }
+  },
+  { immediate: true },
+);
 
 async function onSubmit() {
   errorMessage.value = null;
@@ -62,8 +101,33 @@ async function signOut() {
       <p class="subtitle">Proof of concept</p>
     </header>
 
-    <section v-if="user" class="welcome">
+    <section v-if="user && rolesState === 'loading'" class="welcome">
+      <p class="welcome__text">Checking your access…</p>
+    </section>
+
+    <section v-else-if="user && rolesState === 'ready' && roles.length === 0" class="welcome">
+      <p class="welcome__text">Welcome, <strong>{{ displayUsername }}</strong>.</p>
+      <p class="denied">
+        Your account is signed in but has no platform roles yet. You cannot use SIS27 until an administrator assigns
+        at least one role.
+      </p>
+      <button type="button" class="btn btn--ghost" :disabled="loading" @click="signOut">
+        Sign out
+      </button>
+    </section>
+
+    <section v-else-if="user && rolesState === 'ready' && roles.length > 0" class="welcome">
       <p class="welcome__text">Welcome, <strong>{{ displayUsername }}</strong>!</p>
+      <p class="roles">Roles: <code>{{ roles.join(", ") }}</code></p>
+
+      <div v-if="showContactLink" class="apps">
+        <p class="apps__title">Apps</p>
+        <a class="app-card" :href="APP_CONTACT_BASE_PATH">
+          <span class="app-card__name">Contact</span>
+          <span class="app-card__hint">Open directory and manage your contact details</span>
+        </a>
+      </div>
+
       <button type="button" class="btn btn--ghost" :disabled="loading" @click="signOut">
         Sign out
       </button>
@@ -161,6 +225,68 @@ async function signOut() {
 .welcome__text {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.denied {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.roles {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.roles code {
+  font-size: 0.8rem;
+  color: #334155;
+}
+
+.apps {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.apps__title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.app-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgb(99 102 241 / 0.12);
+}
+
+.app-card__name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.app-card__hint {
+  font-size: 0.8rem;
+  color: #64748b;
 }
 
 .form {

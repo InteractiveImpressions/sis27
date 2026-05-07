@@ -41,6 +41,27 @@ services:
       kong:
         condition: service_healthy
 
+  contact:
+    build:
+      context: ${SIS27_ROOT:?Set SIS27_ROOT to the repository root (see infra/deploy/scripts/compose.sh)}
+      dockerfile: apps/contact/Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${SIS27_PUBLIC_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+        NEXT_PUBLIC_BASE_PATH: /contact
+    container_name: sis27-contact
+    restart: unless-stopped
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      NODE_ENV: production
+      NEXT_PUBLIC_SUPABASE_URL: ${SIS27_PUBLIC_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+      NEXT_PUBLIC_BASE_PATH: /contact
+    depends_on:
+      kong:
+        condition: service_healthy
+
   sis27-caddy:
     image: caddy:2-alpine
     container_name: sis27-caddy
@@ -52,6 +73,8 @@ services:
       - ${SIS27_ROOT}/infra/deploy/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       web:
+        condition: service_started
+      contact:
         condition: service_started
       kong:
         condition: service_healthy

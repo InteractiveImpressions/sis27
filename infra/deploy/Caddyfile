@@ -12,6 +12,13 @@
 		reverse_proxy kong:8000
 	}
 
+	@contact {
+		path /contact /contact/*
+	}
+	handle @contact {
+		reverse_proxy contact:3000
+	}
+
 	handle {
 		reverse_proxy web:3000
 	}

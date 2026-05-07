@@ -14,6 +14,8 @@ jobs:
     # Omit 'environment' until you create it in GitHub; add for approval gates later.
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -35,8 +37,12 @@ jobs:
           tar -C "${GITHUB_WORKSPACE}" -czf /tmp/sis27-sync.tgz \
             --exclude=node_modules \
             --exclude=apps/web/node_modules \
+            --exclude=apps/contact/node_modules \
+            --exclude=packages/platform/node_modules \
             --exclude=apps/web/.nuxt \
             --exclude=apps/web/.output \
+            --exclude=apps/contact/.next \
+            --exclude=packages/platform/dist \
             --exclude=infra/supabase/docker/volumes/db/data \
             .
           gcloud compute scp /tmp/sis27-sync.tgz "${GCP_INSTANCE}:~/sis27-sync.tgz" \

@@ -4,8 +4,11 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/
+COPY packages/platform/package.json packages/platform/
 RUN pnpm install --frozen-lockfile
+COPY packages/platform packages/platform
 COPY apps/web apps/web
+RUN pnpm --filter @sis27/platform build
 ENV NUXT_TELEMETRY_DISABLED=1
 # Public Supabase client values are inlined at build time; must match Kong’s ANON_KEY on the host stack.
 ARG NUXT_PUBLIC_SUPABASE_URL

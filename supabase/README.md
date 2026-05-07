@@ -15,3 +15,10 @@ With the stack running:
 ```bash
 ./infra/deploy/scripts/migrate.sh
 ```
+
+## Contact app migrations
+
+The **Contact** satellite app owns [`apps/contact/supabase/migrations`](../apps/contact/supabase/migrations). Those files are **not** in this folder; they are applied separately:
+
+- **Local `pnpm dev`**: [`scripts/dev.sh`](../scripts/dev.sh) applies them after `supabase/migrations/*.sql`.
+- **VM deploy**: [`infra/deploy/scripts/deploy.sh`](../infra/deploy/scripts/deploy.sh) runs [`scripts/migrate-contact.sh`](../scripts/migrate-contact.sh) after `migrate.sh`.

@@ -28,4 +28,5 @@ for _ in {1..45}; do
 done
 
 "$ROOT/infra/deploy/scripts/migrate.sh"
+"$ROOT/scripts/migrate-contact.sh"
 echo "Deploy complete."

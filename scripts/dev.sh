@@ -55,6 +55,15 @@ for migration in "$ROOT"/supabase/migrations/*.sql; do
   "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$migration" >/dev/null
 done
 
+if [[ -d "$ROOT/apps/contact/supabase/migrations" ]]; then
+  shopt -s nullglob
+  for migration in "$ROOT"/apps/contact/supabase/migrations/*.sql; do
+    echo "  -> contact/$(basename "$migration")"
+    "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$migration" >/dev/null
+  done
+  shopt -u nullglob
+fi
+
 echo "Waiting for Supabase API gateway..."
 for _ in {1..60}; do
   status="$(curl -sS --max-time 2 -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/auth/v1/health || true)"
