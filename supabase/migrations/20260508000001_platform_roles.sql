@@ -73,7 +73,7 @@ create or replace function public.current_user_roles()
 returns text[]
 language sql
 stable
-security invoker
+security definer
 set search_path = public
 as $$
   select coalesce(
@@ -82,7 +82,10 @@ as $$
   )
   from public.user_roles ur
   join public.roles r on r.id = ur.role_id
-  where ur.user_id = auth.uid();
+  where ur.user_id = coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+  )::uuid;
 $$;
 
 comment on function public.current_user_roles() is 'Role names for the current auth user; empty array if none.';
@@ -91,14 +94,17 @@ create or replace function public.has_role(role_name text)
 returns boolean
 language sql
 stable
-security invoker
+security definer
 set search_path = public
 as $$
   select exists (
     select 1
     from public.user_roles ur
     join public.roles r on r.id = ur.role_id
-    where ur.user_id = auth.uid()
+    where ur.user_id = coalesce(
+        nullif(current_setting('request.jwt.claim.sub', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+      )::uuid
       and r.name = role_name
   );
 $$;
