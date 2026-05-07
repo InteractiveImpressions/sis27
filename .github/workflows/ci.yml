@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           git submodule sync --recursive
-          git submodule update --init --force --depth 1 --recursive
+          git submodule update --init --force --recursive
 
       - uses: pnpm/action-setup@v4
 

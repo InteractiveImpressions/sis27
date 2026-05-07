@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           git submodule sync --recursive
-          git submodule update --init --force --depth 1 --recursive
+          git submodule update --init --force --recursive
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
