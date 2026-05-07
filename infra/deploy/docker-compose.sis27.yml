@@ -12,8 +12,12 @@
 #   SIS27_PUBLIC_URL — browser-facing origin (same host users type in the address bar)
 
 services:
+  # Publish Kong on the host so Studio/API are reachable at http://<vm-ip>:8000/ when the
+  # VPC firewall allows tcp:8000 (see rule sis27-allow-supabase-kong-8000). Caddy still proxies
+  # the same stack on :80/:443 via SIS27_PUBLIC_URL.
   kong:
-    ports: !reset []
+    ports:
+      - "8000:8000/tcp"
 
   # First boot runs many DB migrations; default health window is too short and breaks `studio → kong` startup.
   analytics:
