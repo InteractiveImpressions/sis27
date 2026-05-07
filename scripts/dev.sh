@@ -70,7 +70,11 @@ done
 if [[ -n "$CONTACT_MIGRATIONS" && -d "$CONTACT_MIGRATIONS" ]]; then
   for migration in "$CONTACT_MIGRATIONS"/*.sql; do
     echo "  -> contact/$(basename "$migration")"
-    "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$migration" >/dev/null
+    {
+      printf 'set role contact_migrator;\n'
+      cat "$migration"
+      printf '\nreset role;\n'
+    } | "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres >/dev/null
   done
 fi
 shopt -u nullglob

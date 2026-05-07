@@ -17,7 +17,7 @@ This POC should stay as simple as possible while exploring the platform idea.
 | Path | Purpose |
 |------|---------|
 | `apps/web` | Built-in Nuxt dashboard shell (auth, platform roles, links to apps). |
-| `apps/contact` | Contact satellite app (Next.js); owns `contact_entries` migrations under `apps/contact/supabase/migrations`. |
+| `apps/contact` | Contact satellite app (Next.js); owns the `contact` schema and migrations under `apps/contact/supabase/migrations`. |
 | `packages/platform` | Published npm package `@sis27/platform` — shared role names, routes, env helpers (see `packages/platform/README.md`). |
 | `supabase/migrations` | SQL migrations applied after DB is up (platform tables, roles, helpers). |
 | `infra/supabase/docker` | Vendored official [Supabase Docker](https://github.com/supabase/supabase/tree/master/docker) stack. |
@@ -25,8 +25,9 @@ This POC should stay as simple as possible while exploring the platform idea.
 
 ## Conventions
 
-- **RLS**: New app tables live in `public` or a dedicated schema; always `ENABLE ROW LEVEL SECURITY` and explicit policies.
-- **Migrations**: One logical change per file, timestamp prefix. Platform tables live under `supabase/migrations`. Satellite-owned tables may live under `apps/<app>/supabase/migrations` (see Contact); `pnpm dev` and `deploy.sh` apply those after platform migrations.
+- **Ownership**: Platform migrations own shared objects in `public` / Supabase schemas (`profiles`, `roles`, `user_roles`, `has_role`, Auth hooks). Satellite apps own a dedicated app schema and a no-login migrator role; Contact uses schema `contact` and role `contact_migrator`.
+- **RLS**: New app tables live in a dedicated app schema; always `ENABLE ROW LEVEL SECURITY` and explicit policies.
+- **Migrations**: One logical change per file, timestamp prefix. Platform tables live under `supabase/migrations`. Satellite-owned tables may live under `apps/<app>/supabase/migrations` (see Contact); `pnpm dev` and `deploy.sh` apply those after platform migrations under the app migrator role.
 - **Secrets**: Never commit `infra/supabase/docker/.env`. Copy from `.env.example` and run `utils/generate-keys.sh` inside that folder.
 
 ## Commands (local)

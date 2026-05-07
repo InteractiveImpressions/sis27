@@ -41,7 +41,7 @@ pnpm dev
 pnpm dev:down
 ```
 
-`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Open the dashboard at `http://localhost:3000` and Contact at `http://localhost:3001/contact`.
+`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Contact migrations run under the app-owned `contact_migrator` role after platform migrations create the shared roles/schema. Open the dashboard at `http://localhost:3000` and Contact at `http://localhost:3001/contact`.
 
 Other scripts: **`pnpm dev:web-stack`** — stack + Nuxt only (no Contact). **`pnpm dev:contact`** — stack + Contact only (or **`pnpm dev`** inside `apps/contact` using the sibling `sis27` checkout). **`pnpm dev:web`** — Nuxt only (when Supabase is already running elsewhere).
 
@@ -102,6 +102,8 @@ Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** app
 ## Platform roles and Contact app
 
 - **Roles** are stored in Postgres (`public.roles`, `public.user_roles`). Users with **no roles** cannot use the dashboard beyond sign-in (they see an access-denied message). The Contact app requires `contact:user` or `contact:admin`.
+- **Database ownership:** platform migrations own shared `public` objects (`profiles`, `roles`, `user_roles`, role helper functions, Auth signup triggers). The Contact satellite owns the dedicated `contact` schema through the no-login `contact_migrator` role; its tables, functions, triggers, policies, and grants live there and are applied under that role.
+- **Supabase API schemas:** Contact uses `contact.entries` and `contact.users_public_profile(...)`, so `PGRST_DB_SCHEMAS` must include `contact` (for example `public,contact,storage,graphql_public`).
 - **Manual role grant (POC)** — run as `postgres` or in Supabase Studio SQL, after you know the user’s UUID from `auth.users`:
 
   ```sql
@@ -115,6 +117,15 @@ Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** app
 - **`@sis27/platform`**: shared TypeScript constants and helpers; publish to Google Artifact Registry using [`packages/platform/README.md`](packages/platform/README.md). **Contact** depends on **`^0.1.0`**; the repo root [`.npmrc`](.npmrc) sets **`link-workspace-packages`** and **`prefer-workspace-packages`** so `pnpm install` at the monorepo root always links [`packages/platform`](packages/platform). Standalone **sis27-contact** uses its own **`.npmrc`** so **`@sis27`** resolves from Artifact Registry.
 
 **Supabase Studio** is not exposed on `/` anymore (Caddy sends `/` to Nuxt). Use `docker compose … port` or add a dedicated route later if you need the dashboard on the public host.
+
+## Satellite app migration contract
+
+Future satellite apps should follow the Contact pattern:
+
+- Platform migrations create the app schema and a no-login app migrator role, for example `inventory` plus `inventory_migrator`.
+- App migrations are stored under `apps/<app>/supabase/migrations` and must run successfully after `SET ROLE <app>_migrator`.
+- App-owned tables, functions, triggers, policies, indexes, and grants live in the app schema. They may reference approved platform objects such as `auth.users`, `public.profiles`, and `public.has_role(...)`, but they should not alter or drop platform-owned objects.
+- Any app schema used through Supabase clients must be listed in `PGRST_DB_SCHEMAS`, and client code should call it explicitly with `supabase.schema('<app>')`.
 
 ## VM deploy layout
 
@@ -189,7 +200,7 @@ Not required for the first POC: use `http://<vm-ip>` and set all public URL env 
 
 ## Next exploration
 
-- Separate git repos per satellite app; agree on migration ownership and schema namespaces.
+- Separate git repos per satellite app; keep each app on a dedicated schema plus app-specific migrator role.
 - Optional admin app under `apps/admin` once scope is clear.
 - Tighten auth (SMTP, MFA), rotate all example secrets, and restrict Studio / Kong exposure.
 

@@ -26,7 +26,11 @@ fi
 
 for f in "${files[@]}"; do
   echo "Applying contact migration $(basename "$f")"
-  "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$f"
+  {
+    printf 'set role contact_migrator;\n'
+    cat "$f"
+    printf '\nreset role;\n'
+  } | "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres
 done
 
 echo "Contact migrations finished."
