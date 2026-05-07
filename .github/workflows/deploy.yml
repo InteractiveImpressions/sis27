@@ -23,7 +23,7 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Deploy on VM
+      - name: Sync repository and deploy on VM
         env:
           GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
           GCP_ZONE: ${{ secrets.GCP_ZONE }}
@@ -32,8 +32,23 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${GCP_PROJECT:-}" && test -n "${GCP_ZONE:-}" && test -n "${GCP_INSTANCE:-}" && test -n "${SIS27_DEPLOY_PATH:-}"
+          tar -C "${GITHUB_WORKSPACE}" -czf /tmp/sis27-sync.tgz \
+            --exclude=node_modules \
+            --exclude=apps/web/node_modules \
+            --exclude=apps/web/.nuxt \
+            --exclude=apps/web/.output \
+            --exclude=infra/supabase/docker/volumes/db/data \
+            .
+          gcloud compute scp /tmp/sis27-sync.tgz "${GCP_INSTANCE}:~/sis27-sync.tgz" \
+            --project="${GCP_PROJECT}" \
+            --zone="${GCP_ZONE}" \
+            --quiet
+          gcloud compute scp "${GITHUB_WORKSPACE}/infra/deploy/scripts/apply-ci-sync.sh" "${GCP_INSTANCE}:~/apply-ci-sync.sh" \
+            --project="${GCP_PROJECT}" \
+            --zone="${GCP_ZONE}" \
+            --quiet
           gcloud compute ssh "${GCP_INSTANCE}" \
             --project="${GCP_PROJECT}" \
             --zone="${GCP_ZONE}" \
             --quiet \
-            --command="set -euo pipefail; cd '${SIS27_DEPLOY_PATH}'; git pull; chmod +x infra/deploy/scripts/deploy.sh; ./infra/deploy/scripts/deploy.sh"
+            --command="chmod +x ~/apply-ci-sync.sh && bash ~/apply-ci-sync.sh '${SIS27_DEPLOY_PATH}'"
