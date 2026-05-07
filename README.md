@@ -41,11 +41,11 @@ pnpm dev
 pnpm dev:down
 ```
 
-`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Open the dashboard at `http://127.0.0.1:3000` and Contact at `http://127.0.0.1:3001/contact`.
+`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Open the dashboard at `http://localhost:3000` and Contact at `http://localhost:3001/contact`.
 
 Other scripts: **`pnpm dev:web-stack`** — stack + Nuxt only (no Contact). **`pnpm dev:contact`** — stack + Contact only (or **`pnpm dev`** inside `apps/contact` using the sibling `sis27` checkout). **`pnpm dev:web`** — Nuxt only (when Supabase is already running elsewhere).
 
-**Split dev ports (default):** the dashboard links to **`http://127.0.0.1:3001/contact`** in Nuxt development mode, and Contact links back to **`http://127.0.0.1:3000/`**, so cross-app navigation matches `pnpm dev:web` (port 3000) and Contact on 3001. Override with **`NUXT_PUBLIC_CONTACT_DEV_ORIGIN`** (dashboard → contact) or **`NEXT_PUBLIC_DASHBOARD_DEV_URL`** (contact → dashboard) if you use different ports. In production (single origin behind Caddy) both apps use **relative** `/` and `/contact` only.
+**Split dev ports (default):** the dashboard links to **`http://localhost:3001/contact`** in Nuxt development mode, and Contact links back to **`http://localhost:3000/`**, so cross-app navigation matches `pnpm dev:web` (port 3000) and Contact on 3001 while keeping auth cookies on the same browser host. Override with **`NUXT_PUBLIC_CONTACT_DEV_ORIGIN`** (dashboard → contact) or **`NEXT_PUBLIC_DASHBOARD_DEV_URL`** (contact → dashboard) if you use different ports. In production (single origin behind Caddy) both apps use **relative** `/` and `/contact` only.
 
 `pnpm dev:down` stops and removes the local SIS27 Docker Compose stack started for development.
 

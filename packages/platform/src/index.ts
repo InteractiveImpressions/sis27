@@ -9,8 +9,8 @@ export const APP_CONTACT_ID = "contact" as const;
 export const APP_CONTACT_BASE_PATH = "/contact" as const;
 
 /** Default dev origins when dashboard and Contact run on separate ports (see root README). */
-export const DEV_DASHBOARD_ORIGIN = "http://127.0.0.1:3000" as const;
-export const DEV_CONTACT_ORIGIN = "http://127.0.0.1:3001" as const;
+export const DEV_DASHBOARD_ORIGIN = "http://localhost:3000" as const;
+export const DEV_CONTACT_ORIGIN = "http://localhost:3001" as const;
 
 /** Join origin (no trailing slash) and path (leading slash). */
 export function absoluteAppUrl(origin: string, path: string): string {

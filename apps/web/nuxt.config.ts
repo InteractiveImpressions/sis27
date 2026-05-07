@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   modules: ["@nuxtjs/supabase", "@nuxt/eslint"],
   runtimeConfig: {
     public: {
-      /** Full URL to Contact dev server (e.g. http://127.0.0.1:3001); empty in production for same-origin `/contact`. */
+      /** Full URL to Contact dev server (e.g. http://localhost:3001); empty in production for same-origin `/contact`. */
       contactDevOrigin: contactDevOrigin,
     },
   },
