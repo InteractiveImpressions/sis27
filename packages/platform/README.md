@@ -2,6 +2,12 @@
 
 Shared public contracts for SIS27 satellite apps and the dashboard: role names, app routes, small helpers, and env parsing for **public** Supabase client settings only.
 
+## Local Docker stack
+
+The package ships a small CLI used by monorepo and Contact dev scripts so **Ctrl+C** and **`pnpm dev:down`** tear down the same Compose project:
+
+- **`sis27-stack-down`** — runs `docker compose … down` for `infra/supabase/docker/docker-compose.yml`. Honors **`SIS27_ROOT`** (platform repo root), **`SIS27_DEV_PROJECT_NAME`** (default `sis27-dev`), and **`SIS27_DEV_ENV_FILE`** (falls back to `.env` then `.env.example` under `infra/supabase/docker/`).
+
 ## Publish to Google Artifact Registry (project `sis27-495603`)
 
 Prerequisites: `gcloud` authenticated, Artifact Registry API enabled, npm 9+.

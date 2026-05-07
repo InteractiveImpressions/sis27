@@ -11,6 +11,9 @@ importers:
 
   .:
     devDependencies:
+      '@sis27/platform':
+        specifier: workspace:*
+        version: link:packages/platform
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1

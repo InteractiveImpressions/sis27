@@ -38,7 +38,11 @@ cleanup() {
   CLEANED_UP=1
   echo
   echo "Stopping local SIS27 Docker stack ($PROJECT_NAME)..."
-  "${COMPOSE[@]}" down
+  # After `cd` into apps/contact (standalone or submodule), return to platform root so the
+  # shared stack-down helper (@sis27/platform) resolves compose paths correctly.
+  cd "$ROOT"
+  export SIS27_ROOT="$ROOT"
+  pnpm exec sis27-stack-down
 }
 
 trap cleanup EXIT
