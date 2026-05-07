@@ -21,7 +21,7 @@ sudo tar -xzf "$TGZ" -C "$DEPLOY"
 sudo chown -R "$(whoami):$(id -gn)" "$DEPLOY"
 
 if test -f /tmp/sis27-env-backup; then
-  sudo install -m 600 /tmp/sis27-env-backup "$ENV"
+  sudo install -o "$(whoami)" -g "$(id -gn)" -m 600 /tmp/sis27-env-backup "$ENV"
 fi
 
 cd "$DEPLOY"
