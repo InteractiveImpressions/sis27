@@ -59,7 +59,7 @@ async function signOut() {
     <header class="card__header">
       <p class="eyebrow">SIS27</p>
       <h1 class="title">Data platform</h1>
-      <p class="subtitle">Proof of concept — sign in to continue.</p>
+      <p class="subtitle">Proof of concept</p>
     </header>
 
     <section v-if="user" class="welcome">
