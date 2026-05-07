@@ -151,7 +151,7 @@ export SIS27_ROOT="$(pwd)"
 
 The SIS27 overlay lengthens the **analytics (Logflare)** healthcheck startup window; without it, first boot can fail while migrations run.
 
-**`/contact` on the VM shows Nuxt’s 404:** port **80** must be served by **`sis27-caddy`** ([`infra/deploy/Caddyfile`](infra/deploy/Caddyfile)), which sends `/contact` to the **Contact** container and everything else (except API prefixes) to **Nuxt**. If you see a Nuxt page for `/contact`, traffic is reaching **Nuxt** instead of Caddy’s Contact route — e.g. an old process on `:80`, a deploy that never ran `./infra/deploy/scripts/deploy.sh` with the SIS27 overlay, or an outdated Caddyfile on the server. After pulling latest, run **`./infra/deploy/scripts/deploy.sh`** (with `SIS27_ROOT` set) so **`sis27-caddy`** reloads the current Caddyfile and the **contact** service is up.
+**`/contact` on the VM shows Nuxt’s 404:** port **80** must be served by **`sis27-caddy`** ([`infra/deploy/Caddyfile`](infra/deploy/Caddyfile)), which sends `/contact` to the **Contact** container and everything else (except API prefixes) to **Nuxt**. If Caddy’s config on disk includes `/contact` but the browser still hits Nuxt, **`sis27-caddy` is often serving a stale bind-mounted Caddyfile** (Linux keeps the old inode after `git pull` or `tar` replaces the file). **`./infra/deploy/scripts/deploy.sh`** now **force-recreates** `sis27-caddy` after every deploy so the mount refreshes; manually: `sudo SIS27_ROOT=/opt/sis27 docker compose … up -d --no-deps --force-recreate sis27-caddy` from the repo root (same compose files and `--env-file` as in [`deploy.sh`](infra/deploy/scripts/deploy.sh)).
 
 ### Matching your GCP VM
 

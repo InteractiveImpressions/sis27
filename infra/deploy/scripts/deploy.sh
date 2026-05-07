@@ -21,6 +21,11 @@ COMPOSE=(docker compose --env-file "$ENV_FILE" \
 mkdir -p "$SIS27_DOCKER_BUILD_CACHE_DIR/web" "$SIS27_DOCKER_BUILD_CACHE_DIR/contact"
 "${COMPOSE[@]}" up -d --build
 
+# Caddy bind-mounts `infra/deploy/Caddyfile`. If that file is replaced on disk (git pull, tar
+# extract) the inode can change; the old container keeps reading the stale file. Recreate
+# Caddy so the mount always matches the current Caddyfile (e.g. new `/contact` routes).
+"${COMPOSE[@]}" up -d --no-deps --force-recreate sis27-caddy
+
 echo "Waiting for Postgres..."
 for _ in {1..45}; do
   if "${COMPOSE[@]}" exec -T db pg_isready -U postgres -d postgres >/dev/null 2>&1; then
