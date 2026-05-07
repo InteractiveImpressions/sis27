@@ -47,6 +47,8 @@ Other scripts: **`pnpm dev:web-stack`** — stack + Nuxt only (no Contact). **`p
 
 **Split dev ports (default):** the dashboard links to **`http://localhost:3001/contact`** in Nuxt development mode, and Contact links back to **`http://localhost:3000/`**, so cross-app navigation matches `pnpm dev:web` (port 3000) and Contact on 3001 while keeping auth cookies on the same browser host. Override with **`NUXT_PUBLIC_CONTACT_DEV_ORIGIN`** (dashboard → contact) or **`NEXT_PUBLIC_DASHBOARD_DEV_URL`** (contact → dashboard) if you use different ports. In production (single origin behind Caddy) both apps use **relative** `/` and `/contact` only.
 
+**Prod-like local origin (optional):** with the stack and both dev servers running (`pnpm dev`), start Caddy on **`http://127.0.0.1:8888/`** using the same path routing as production ([`infra/deploy/Caddyfile`](infra/deploy/Caddyfile)): **`pnpm dev:caddy`** (requires [Caddy](https://caddyserver.com/docs/install) on your PATH). Then use **`http://127.0.0.1:8888/`** and **`http://127.0.0.1:8888/contact`** so behaviour matches the VM. For a Caddy container instead of a host binary, set `SIS27_PROXY_*` to `host.docker.internal:PORT` and add Docker’s `host-gateway` host mapping (see comments in [`infra/dev/Caddyfile`](infra/dev/Caddyfile)).
+
 `pnpm dev:down` stops and removes the local SIS27 Docker Compose stack started for development.
 
 By default it uses [`infra/supabase/docker/.env.example`](infra/supabase/docker/.env.example) and sets `ENABLE_EMAIL_AUTOCONFIRM=true` for a quick local POC. For persistent local secrets, create `infra/supabase/docker/.env`; the script will prefer that file automatically.
@@ -148,6 +150,8 @@ export SIS27_ROOT="$(pwd)"
 ```
 
 The SIS27 overlay lengthens the **analytics (Logflare)** healthcheck startup window; without it, first boot can fail while migrations run.
+
+**`/contact` on the VM shows Nuxt’s 404:** port **80** must be served by **`sis27-caddy`** ([`infra/deploy/Caddyfile`](infra/deploy/Caddyfile)), which sends `/contact` to the **Contact** container and everything else (except API prefixes) to **Nuxt**. If you see a Nuxt page for `/contact`, traffic is reaching **Nuxt** instead of Caddy’s Contact route — e.g. an old process on `:80`, a deploy that never ran `./infra/deploy/scripts/deploy.sh` with the SIS27 overlay, or an outdated Caddyfile on the server. After pulling latest, run **`./infra/deploy/scripts/deploy.sh`** (with `SIS27_ROOT` set) so **`sis27-caddy`** reloads the current Caddyfile and the **contact** service is up.
 
 ### Matching your GCP VM
 

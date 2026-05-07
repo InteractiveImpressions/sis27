@@ -4,9 +4,9 @@
 :80 {
 	encode gzip
 
+	# All Kong-facing prefixes in one `path` line (OR). Easier to audit and matches `infra/dev/Caddyfile`.
 	@api {
-		path /auth/* /rest/* /realtime/* /storage/* /functions/* /graphql/* /pg/*
-		path /.well-known/* /sso/*
+		path /auth/* /rest/* /realtime/* /storage/* /functions/* /graphql/* /pg/* /.well-known/* /sso/*
 	}
 	handle @api {
 		reverse_proxy kong:8000

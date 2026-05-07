@@ -1,0 +1,29 @@
+# Prod-like routing for local development: one origin, same path layout as `infra/deploy/Caddyfile`.
+# Run while Supabase + Nuxt + Contact are up (e.g. after `pnpm dev`), then open http://127.0.0.1:8888/
+#
+# Upstreams default to loopback. From Caddy inside Docker, run with env overrides, e.g.:
+#   SIS27_PROXY_KONG=host.docker.internal:8000 SIS27_PROXY_WEB=host.docker.internal:3000 SIS27_PROXY_CONTACT=host.docker.internal:3001 caddy run --config infra/dev/Caddyfile
+#
+# See `scripts/dev-caddy.sh`.
+
+:8888 {
+	encode gzip
+
+	@api {
+		path /auth/* /rest/* /realtime/* /storage/* /functions/* /graphql/* /pg/* /.well-known/* /sso/*
+	}
+	handle @api {
+		reverse_proxy {$SIS27_PROXY_KONG:127.0.0.1:8000}
+	}
+
+	@contact {
+		path /contact /contact/*
+	}
+	handle @contact {
+		reverse_proxy {$SIS27_PROXY_CONTACT:127.0.0.1:3001}
+	}
+
+	handle {
+		reverse_proxy {$SIS27_PROXY_WEB:127.0.0.1:3000}
+	}
+}
