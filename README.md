@@ -41,9 +41,9 @@ pnpm dev
 pnpm dev:down
 ```
 
-`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then starts the Nuxt app.
+`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Open the dashboard at `http://127.0.0.1:3000` and Contact at `http://127.0.0.1:3001/contact`.
 
-To run **only** the Contact app with the **same** local Docker stack (Supabase + migrations) without starting Nuxt, use **`pnpm dev:contact`** from the repo root (or run **`pnpm dev`** inside `apps/contact`). Both start the stack then Next on port **3001**; open `http://127.0.0.1:3001/contact`. Sign in via the dashboard at `http://127.0.0.1:3000` with **`pnpm dev:web`** in another terminal if you need the Nuxt shell, or use the same session cookies if you already signed in on `:3000`.
+Other scripts: **`pnpm dev:web-stack`** — stack + Nuxt only (no Contact). **`pnpm dev:contact`** — stack + Contact only (or **`pnpm dev`** inside `apps/contact` using the sibling `sis27` checkout). **`pnpm dev:web`** — Nuxt only (when Supabase is already running elsewhere).
 
 **Split dev ports (default):** the dashboard links to **`http://127.0.0.1:3001/contact`** in Nuxt development mode, and Contact links back to **`http://127.0.0.1:3000/`**, so cross-app navigation matches `pnpm dev:web` (port 3000) and Contact on 3001. Override with **`NUXT_PUBLIC_CONTACT_DEV_ORIGIN`** (dashboard → contact) or **`NEXT_PUBLIC_DASHBOARD_DEV_URL`** (contact → dashboard) if you use different ports. In production (single origin behind Caddy) both apps use **relative** `/` and `/contact` only.
 
@@ -56,6 +56,10 @@ Useful overrides:
 ```bash
 SIS27_DEV_PROJECT_NAME=sis27-dev pnpm dev
 SIS27_DEV_ENV_FILE=/absolute/path/to/.env pnpm dev
+# Optional: which dev servers after migrations (default is all = Nuxt + Contact)
+SIS27_DEV_FRONTEND=all pnpm dev    # same as plain pnpm dev
+SIS27_DEV_FRONTEND=web pnpm dev     # same as pnpm dev:web-stack
+SIS27_DEV_FRONTEND=contact pnpm dev # same as pnpm dev:contact
 ```
 
 ## One-time Supabase env (self-hosted)

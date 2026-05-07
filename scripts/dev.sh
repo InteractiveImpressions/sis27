@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-SIS27_DEV_FRONTEND="${SIS27_DEV_FRONTEND:-web}"
+# all = Nuxt + Contact (default). web = stack + Nuxt only. contact = stack + Contact only.
+SIS27_DEV_FRONTEND="${SIS27_DEV_FRONTEND:-all}"
 CONTACT_DIR="${SIS27_CONTACT_APP_DIR:-$ROOT/apps/contact}"
 CONTACT_MIGRATIONS="${SIS27_CONTACT_MIGRATIONS:-}"
 if [[ -z "$CONTACT_MIGRATIONS" && -d "$ROOT/apps/contact/supabase/migrations" ]]; then
@@ -94,11 +95,26 @@ if [[ "$SIS27_DEV_FRONTEND" == "contact" ]]; then
   cd "$CONTACT_DIR"
   pnpm exec next dev --turbopack -p 3001
   DEV_EXIT_CODE="$?"
-else
+elif [[ "$SIS27_DEV_FRONTEND" == "web" ]]; then
   echo "Starting Nuxt dev server..."
   cd "$ROOT"
   pnpm --filter @sis27/web dev
   DEV_EXIT_CODE="$?"
+else
+  # Default "all": dashboard + Contact (split ports; see README / @sis27/platform dev origins).
+  if [[ ! -f "$CONTACT_DIR/package.json" ]]; then
+    echo "Contact app not found at $CONTACT_DIR — starting Nuxt only. Initialize apps/contact (submodule) for full stack." >&2
+    cd "$ROOT"
+    pnpm --filter @sis27/web dev
+    DEV_EXIT_CODE="$?"
+  else
+    echo "Starting Nuxt (3000) and Contact (3001) dev servers..."
+    cd "$ROOT"
+    pnpm exec concurrently --kill-others-on-fail -n web,contact -c blue,magenta \
+      "pnpm --filter @sis27/web dev" \
+      "pnpm --filter @sis27/contact dev:next"
+    DEV_EXIT_CODE="$?"
+  fi
 fi
 set -e
 
