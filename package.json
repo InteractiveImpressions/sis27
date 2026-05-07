@@ -16,11 +16,6 @@
   "engines": {
     "node": ">=20"
   },
-  "pnpm": {
-    "overrides": {
-      "@sis27/platform": "workspace:*"
-    }
-  },
   "devDependencies": {
     "@sis27/platform": "workspace:*",
     "concurrently": "^9.2.1"

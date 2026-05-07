@@ -4,7 +4,7 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /repo
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY apps/web/package.json apps/web/
 COPY packages/platform/package.json packages/platform/
 RUN --mount=type=cache,id=sis27-pnpm-store,target=/pnpm/store \

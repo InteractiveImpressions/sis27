@@ -68,6 +68,6 @@ After **`allUsers`** has **`roles/artifactregistry.reader`** on `sis27-npm` (see
 @sis27:registry=https://europe-west3-npm.pkg.dev/sis27-495603/sis27-npm/
 ```
 
-The **Contact** app repo instead links the local platform package via **`pnpm-workspace.yaml`** and `workspace:*` (sibling `sis27` checkout); see [`apps/contact/README.md`](../../apps/contact/README.md) in this monorepo.
+The **Contact** app repo depends on **`@sis27/platform`** **`^0.1.0`** and uses its own **`.npmrc`** for Artifact Registry; see [`apps/contact/README.md`](../../apps/contact/README.md).
 
-When developing **inside** this monorepo, use `"@sis27/platform": "workspace:*"` (root `pnpm.overrides` already enforces it).
+When developing **inside** this monorepo, depend on `"@sis27/platform": "^0.1.0"` (or `workspace:*` on app packages); the root [`.npmrc`](../../.npmrc) **`link-workspace-packages`** / **`prefer-workspace-packages`** links [`packages/platform`](../../packages/platform). Standalone **sis27-contact** installs **`^0.1.0`** from Artifact Registry.

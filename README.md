@@ -112,7 +112,7 @@ Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** app
 
   Replace `contact:user` with `contact:admin` when needed.
 
-- **`@sis27/platform`**: shared TypeScript constants and helpers; publish to Google Artifact Registry using [`packages/platform/README.md`](packages/platform/README.md). The Contact submodule declares `@sis27/platform` as `^0.1.0` for standalone installs; the monorepo root **`package.json`** sets **`pnpm.overrides`** so it resolves to `workspace:*` against [`packages/platform`](packages/platform) without publishing.
+- **`@sis27/platform`**: shared TypeScript constants and helpers; publish to Google Artifact Registry using [`packages/platform/README.md`](packages/platform/README.md). **Contact** depends on **`^0.1.0`**; the repo root [`.npmrc`](.npmrc) sets **`link-workspace-packages`** and **`prefer-workspace-packages`** so `pnpm install` at the monorepo root always links [`packages/platform`](packages/platform). Standalone **sis27-contact** uses its own **`.npmrc`** so **`@sis27`** resolves from Artifact Registry.
 
 **Supabase Studio** is not exposed on `/` anymore (Caddy sends `/` to Nuxt). Use `docker compose … port` or add a dedicated route later if you need the dashboard on the public host.
 
