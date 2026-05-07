@@ -37,7 +37,7 @@ pnpm dev
 pnpm dev:down
 ```
 
-`pnpm dev` is the only local-dev entrypoint: it starts the Supabase Docker stack, applies `supabase/migrations/*.sql` and `apps/contact/supabase/migrations/*.sql`, then runs the Nuxt dev server. Use `pnpm dev:web` only when the backend is already managed separately. Run `pnpm dev:contact` in another terminal for the Contact Next app (port **3001**; default URL `http://127.0.0.1:3001/contact`).
+`pnpm dev` is the only local-dev entrypoint: it starts the Supabase Docker stack, applies `supabase/migrations/*.sql` and contact migrations from `apps/contact/supabase/migrations`, then runs the Nuxt dev server. Use `pnpm dev:web` only when the backend is already managed separately. **`pnpm dev:contact`** (or **`pnpm dev`** inside `apps/contact`) starts the same stack and migrations, then the Contact Next app on port **3001** (`http://127.0.0.1:3001/contact`). A standalone [`sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact) clone uses `scripts/dev.sh` there to find a sibling `sis27` checkout or `SIS27_ROOT`.
 
 `pnpm dev:down` tears down the local SIS27 Docker Compose stack.
 

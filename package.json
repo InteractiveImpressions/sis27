@@ -6,7 +6,7 @@
     "dev": "./scripts/dev.sh",
     "dev:down": "./scripts/dev-down.sh",
     "dev:web": "pnpm --filter @sis27/web dev",
-    "dev:contact": "pnpm --filter @sis27/contact dev",
+    "dev:contact": "SIS27_DEV_FRONTEND=contact ./scripts/dev.sh",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck"

@@ -43,7 +43,7 @@ pnpm dev:down
 
 `pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then starts the Nuxt app.
 
-To run the **Contact** app locally (separate dev server on port **3001**), use `pnpm dev:contact` after `pnpm dev` has started the database. Open `http://127.0.0.1:3001/contact` and sign in via the dashboard at `http://127.0.0.1:3000` first so the browser session is shared.
+To run **only** the Contact app with the **same** local Docker stack (Supabase + migrations) without starting Nuxt, use **`pnpm dev:contact`** from the repo root (or run **`pnpm dev`** inside `apps/contact`). Both start the stack then Next on port **3001**; open `http://127.0.0.1:3001/contact`. Sign in via the dashboard at `http://127.0.0.1:3000` with **`pnpm dev:web`** in another terminal if you need the Nuxt shell, or use the same session cookies if you already signed in on `:3000`.
 
 `pnpm dev:down` stops and removes the local SIS27 Docker Compose stack started for development.
 
