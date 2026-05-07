@@ -49,7 +49,7 @@ See [README.md](./README.md). Compose merges the vendored Supabase stack with `i
 
 ## CI/CD secrets
 
-GitHub Actions deploy expects `GCP_SA_KEY`, `GCP_PROJECT`, `GCP_ZONE`, `GCP_INSTANCE`, `SIS27_DEPLOY_PATH` — see README.
+GitHub Actions expect `SIS27_CONTACT_DEPLOY_KEY` (private half of a read-only deploy key on the `sis27-contact` repo for the `apps/contact` submodule), plus deploy secrets `GCP_SA_KEY`, `GCP_PROJECT`, `GCP_ZONE`, `GCP_INSTANCE`, `SIS27_DEPLOY_PATH` — see README.
 
 ## Updating vendored Supabase Docker
 

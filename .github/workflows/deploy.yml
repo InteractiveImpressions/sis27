@@ -13,9 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     # Omit 'environment' until you create it in GitHub; add for approval gates later.
     steps:
+      - uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SIS27_CONTACT_DEPLOY_KEY }}
+
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Init git submodules (Contact)
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git submodule update --init --force --depth 1 --recursive
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

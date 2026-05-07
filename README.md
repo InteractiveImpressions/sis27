@@ -162,10 +162,13 @@ Use the same values as GitHub Actions secrets (see below).
 - **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): install, lint, typecheck, build on PRs and `main`.
 - **Deploy** ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)): on push to `main`, SSH via `gcloud` and run `git pull` + `deploy.sh`.
 
-### Required repository secrets (deploy)
+The **Contact** app is a private submodule ([`sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact)). CI and deploy use a **read-only deploy key** on that repo and the matching private key in repository secret **`SIS27_CONTACT_DEPLOY_KEY`** (see workflow `webfactory/ssh-agent` + manual `git submodule update`). Pull requests from forks cannot use that secret; run CI from branches on this repo or make the submodule public.
+
+### Repository secrets (CI + deploy)
 
 | Secret | Example / notes |
 |--------|------------------|
+| `SIS27_CONTACT_DEPLOY_KEY` | PEM for a **read-only** deploy key on [`sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact); required so CI/deploy can clone `apps/contact`. |
 | `GCP_SA_KEY` | JSON for a service account that can use `gcloud compute ssh` (see [Google’s SSH guide](https://cloud.google.com/compute/docs/connect/standard-ssh)). |
 | `GCP_PROJECT` | `sis27-495603` |
 | `GCP_ZONE` | `europe-west3-c` |

@@ -9,9 +9,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Private submodule: `actions/checkout` with submodules rewrites git@ → HTTPS and
+      # cannot use a deploy key. Load the key first, then init submodules over SSH.
+      - uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SIS27_CONTACT_DEPLOY_KEY }}
+
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Init git submodules (Contact)
+        run: |
+          set -euo pipefail
+          git submodule sync --recursive
+          git submodule update --init --force --depth 1 --recursive
 
       - uses: pnpm/action-setup@v4
 
