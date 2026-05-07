@@ -54,18 +54,14 @@ Or set `_authToken` to `$(gcloud auth print-access-token)` for the `//europe-wes
 
 Grant the publishing principal `roles/artifactregistry.writer` on repository `sis27-npm`.
 
-### Consumers
+### Consumers (optional — published package only)
 
-In `.npmrc`:
+After **`allUsers`** has **`roles/artifactregistry.reader`** on `sis27-npm` (see above), installs can use the registry **without** `_authToken`. In `.npmrc`:
 
 ```ini
 @sis27:registry=https://europe-west3-npm.pkg.dev/sis27-495603/sis27-npm/
 ```
 
-Then:
+The **Contact** app repo instead links the local platform package via **`pnpm-workspace.yaml`** and `workspace:*` (sibling `sis27` checkout); see [`apps/contact/README.md`](../../apps/contact/README.md) in this monorepo.
 
-```bash
-pnpm add @sis27/platform@0.1.0
-```
-
-When developing **inside** this monorepo, use `"@sis27/platform": "workspace:*"` instead.
+When developing **inside** this monorepo, use `"@sis27/platform": "workspace:*"` (root `pnpm.overrides` already enforces it).
