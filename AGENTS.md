@@ -8,7 +8,7 @@ SIS27 is a demo / proof of concept for an internal data platform for a client co
 
 The core architecture is a centralized, secure, self-hosted Supabase / Postgres deployment. Treat Postgres as the shared system of record and RLS as a core platform invariant. Client developers should be able to build apps for specific use cases; those apps may own their own tables and migrations.
 
-SIS27 itself should contain only a few built-in apps: the dashboard entrypoint in `apps/web`, and potentially an admin app later once scope is clearer. Other apps should generally live in separate git repositories. It is not decided yet whether they should be completely separate or attached to this repo as submodules.
+SIS27 itself should contain only a few built-in apps: the dashboard entrypoint in `apps/web` (auth, role gate, links to satellites), the **Contact** app in `apps/contact` (Next.js, same-origin `/contact`), and potentially an admin app later once scope is clearer. Other apps should generally live in separate git repositories; you can attach them as **git submodules** under `apps/<name>` when you want this repo to build and deploy them. The Contact app lives in [`github.com/InteractiveImpressions/sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact) and is linked from this repo as a **git submodule** at `apps/contact`. Clone with `git clone --recurse-submodules` (or run `git submodule update --init --recursive` after clone).
 
 This POC should stay as simple as possible while exploring the platform idea.
 
@@ -16,15 +16,17 @@ This POC should stay as simple as possible while exploring the platform idea.
 
 | Path | Purpose |
 |------|---------|
-| `apps/web` | Built-in Nuxt dashboard shell (auth + welcome). |
-| `supabase/migrations` | SQL migrations applied after DB is up (platform + app-owned tables). |
+| `apps/web` | Built-in Nuxt dashboard shell (auth, platform roles, links to apps). |
+| `apps/contact` | Contact satellite app (Next.js); owns `contact_entries` migrations under `apps/contact/supabase/migrations`. |
+| `packages/platform` | Published npm package `@sis27/platform` — shared role names, routes, env helpers (see `packages/platform/README.md`). |
+| `supabase/migrations` | SQL migrations applied after DB is up (platform tables, roles, helpers). |
 | `infra/supabase/docker` | Vendored official [Supabase Docker](https://github.com/supabase/supabase/tree/master/docker) stack. |
 | `infra/deploy` | Compose overlay, Caddy, VM deploy/migrate scripts. |
 
 ## Conventions
 
 - **RLS**: New app tables live in `public` or a dedicated schema; always `ENABLE ROW LEVEL SECURITY` and explicit policies.
-- **Migrations**: One logical change per file, timestamp prefix. Apps that own tables should keep migrations in their repo and apply in CI/CD (this POC applies `supabase/migrations` from the platform repo).
+- **Migrations**: One logical change per file, timestamp prefix. Platform tables live under `supabase/migrations`. Satellite-owned tables may live under `apps/<app>/supabase/migrations` (see Contact); `pnpm dev` and `deploy.sh` apply those after platform migrations.
 - **Secrets**: Never commit `infra/supabase/docker/.env`. Copy from `.env.example` and run `utils/generate-keys.sh` inside that folder.
 
 ## Commands (local)
@@ -35,7 +37,7 @@ pnpm dev
 pnpm dev:down
 ```
 
-`pnpm dev` is the only local-dev entrypoint: it starts the Supabase Docker stack, applies `supabase/migrations/*.sql`, then runs the Nuxt dev server. Use `pnpm dev:web` only when the backend is already managed separately.
+`pnpm dev` is the only local-dev entrypoint: it starts the Supabase Docker stack, applies `supabase/migrations/*.sql` and `apps/contact/supabase/migrations/*.sql`, then runs the Nuxt dev server. Use `pnpm dev:web` only when the backend is already managed separately. Run `pnpm dev:contact` in another terminal for the Contact Next app (port **3001**; default URL `http://127.0.0.1:3001/contact`).
 
 `pnpm dev:down` tears down the local SIS27 Docker Compose stack.
 

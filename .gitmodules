@@ -1,0 +1,3 @@
+[submodule "apps/contact"]
+	path = apps/contact
+	url = git@github.com:InteractiveImpressions/sis27-contact.git

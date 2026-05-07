@@ -1,6 +1,6 @@
 # SIS27 — internal data platform (POC)
 
-Monorepo for a minimal on-prem stack: **self-hosted Supabase** (Postgres + Auth + Kong + …), a **Nuxt** shell app (sign in / sign up → welcome), SQL **migrations** with RLS, and **Docker Compose** + **GitHub Actions** deploy to a single VM.
+Monorepo for a minimal on-prem stack: **self-hosted Supabase** (Postgres + Auth + Kong + …), a **Nuxt** dashboard (auth + platform roles), a **Next.js** Contact app at `/contact`, SQL **migrations** with RLS, and **Docker Compose** + **GitHub Actions** deploy to a single VM.
 
 ## Project context
 
@@ -17,6 +17,8 @@ For this POC, prefer the simplest useful implementation. The repo exists to expl
 | Area | Path |
 |------|------|
 | Dashboard app | [`apps/web`](apps/web) |
+| Contact app (Next.js submodule) | [`InteractiveImpressions/sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact) checked out at [`apps/contact`](apps/contact) |
+| Shared npm contracts | [`packages/platform`](packages/platform) (`@sis27/platform`) |
 | SQL migrations | [`supabase/migrations`](supabase/migrations) |
 | Vendored Supabase Docker stack | [`infra/supabase/docker`](infra/supabase/docker) |
 | Caddy + web overlay, scripts | [`infra/deploy`](infra/deploy) |
@@ -31,13 +33,17 @@ Supabase’s `docker/` tree is vendored from [supabase/supabase](https://github.
 ## Local development
 
 ```bash
+git clone --recurse-submodules <your-github-repo-url>
+cd sis27
 pnpm install
 pnpm dev
 # Later, stop the local Docker stack:
 pnpm dev:down
 ```
 
-`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations), then starts the Nuxt app.
+`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then starts the Nuxt app.
+
+To run the **Contact** app locally (separate dev server on port **3001**), use `pnpm dev:contact` after `pnpm dev` has started the database. Open `http://127.0.0.1:3001/contact` and sign in via the dashboard at `http://127.0.0.1:3000` first so the browser session is shared.
 
 `pnpm dev:down` stops and removes the local SIS27 Docker Compose stack started for development.
 
@@ -78,9 +84,27 @@ SIS27_DEV_ENV_FILE=/absolute/path/to/.env pnpm dev
 
    ```bash
    ./infra/deploy/scripts/migrate.sh
+   ./scripts/migrate-contact.sh
    ```
 
-Traffic flow: **browser → Caddy (:80)** → Nuxt for `/` and **Kong** for `/auth/*`, `/rest/*`, `/realtime/*`, etc. The Nuxt app uses `NUXT_PUBLIC_SUPABASE_URL` / `NUXT_PUBLIC_SUPABASE_ANON_KEY` (set in Compose from `SIS27_PUBLIC_URL` and `ANON_KEY`).
+   Or run [`infra/deploy/scripts/deploy.sh`](infra/deploy/scripts/deploy.sh), which applies both platform and contact migrations.
+
+Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** app for `/contact`, and **Kong** for `/auth/*`, `/rest/*`, `/realtime/*`, etc. The Nuxt app uses `NUXT_PUBLIC_SUPABASE_URL` / `NUXT_PUBLIC_SUPABASE_ANON_KEY` (set in Compose from `SIS27_PUBLIC_URL` and `ANON_KEY`). The Contact image receives the same public values as `NEXT_PUBLIC_*` build args.
+
+## Platform roles and Contact app
+
+- **Roles** are stored in Postgres (`public.roles`, `public.user_roles`). Users with **no roles** cannot use the dashboard beyond sign-in (they see an access-denied message). The Contact app requires `contact:user` or `contact:admin`.
+- **Manual role grant (POC)** — run as `postgres` or in Supabase Studio SQL, after you know the user’s UUID from `auth.users`:
+
+  ```sql
+  insert into public.user_roles (user_id, role_id)
+  select '<USER_UUID>'::uuid, id from public.roles where name = 'contact:user'
+  on conflict (user_id, role_id) do nothing;
+  ```
+
+  Replace `contact:user` with `contact:admin` when needed.
+
+- **`@sis27/platform`**: shared TypeScript constants and helpers; publish to Google Artifact Registry using [`packages/platform/README.md`](packages/platform/README.md). The Contact submodule declares `@sis27/platform` as `^0.1.0` for standalone installs; the monorepo root **`package.json`** sets **`pnpm.overrides`** so it resolves to `workspace:*` against [`packages/platform`](packages/platform) without publishing.
 
 **Supabase Studio** is not exposed on `/` anymore (Caddy sends `/` to Nuxt). Use `docker compose … port` or add a dedicated route later if you need the dashboard on the public host.
 
@@ -90,19 +114,19 @@ Example layout on the instance:
 
 ```bash
 sudo mkdir -p /opt/sis27 && sudo chown "$USER":"$USER" /opt/sis27
-git clone <your-github-repo> /opt/sis27
+git clone --recurse-submodules <your-github-repo> /opt/sis27
 cd /opt/sis27
 # configure infra/supabase/docker/.env (see above)
 ./infra/deploy/scripts/deploy.sh
 ```
 
-`deploy.sh` builds the web image, starts the stack, waits for Postgres, and runs migrations.
+`deploy.sh` builds the **web** and **contact** images, starts the stack, waits for Postgres, and runs platform plus contact migrations.
 
 The web image **must** receive `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_PUBLIC_SUPABASE_ANON_KEY` as **Docker build args** (wired in [`infra/deploy/docker-compose.sis27.yml`](infra/deploy/docker-compose.sis27.yml)) so the browser bundle uses the same anon JWT as Kong. Without that, Kong returns **401 Unauthorized** for Auth/API calls. On **HTTP** (no TLS yet), the Nuxt app sets **non-secure** auth cookies so sessions work; switch to HTTPS in production and cookies become `Secure` automatically.
 
 ### First manual deploy (GCP example)
 
-On a fresh Debian/Ubuntu VM: install Docker (see [`infra/deploy/scripts/bootstrap-vm.sh`](infra/deploy/scripts/bootstrap-vm.sh) or [Docker’s install script](https://get.docker.com/)), then either `git clone` this repo into `/opt/sis27` or copy a tarball excluding `node_modules` and `.git`.
+On a fresh Debian/Ubuntu VM: install Docker (see [`infra/deploy/scripts/bootstrap-vm.sh`](infra/deploy/scripts/bootstrap-vm.sh) or [Docker’s install script](https://get.docker.com/)), then either `git clone --recurse-submodules` this repo into `/opt/sis27` or copy a tarball excluding `node_modules` and `.git`.
 
 ```bash
 sudo mkdir -p /opt/sis27 && sudo chown "$USER":"$USER" /opt/sis27
