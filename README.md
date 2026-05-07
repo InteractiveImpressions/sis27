@@ -128,7 +128,7 @@ cd /opt/sis27
 ./infra/deploy/scripts/deploy.sh
 ```
 
-`deploy.sh` builds the **web** and **contact** images, starts the stack, waits for Postgres, and runs platform plus contact migrations.
+`deploy.sh` builds the **web** and **contact** images, starts the stack, waits for Postgres, and runs platform plus contact migrations. Docker BuildKit caches app image layers under `.docker-build-cache/` by default, so repeat `docker compose --build` deploys reuse dependency and build layers across runs. Set `SIS27_DOCKER_BUILD_CACHE_DIR=/path/to/cache` before running deploy scripts to move the cache, or remove that directory to force a cold rebuild.
 
 The web image **must** receive `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_PUBLIC_SUPABASE_ANON_KEY` as **Docker build args** (wired in [`infra/deploy/docker-compose.sis27.yml`](infra/deploy/docker-compose.sis27.yml)) so the browser bundle uses the same anon JWT as Kong. Without that, Kong returns **401 Unauthorized** for Auth/API calls. On **HTTP** (no TLS yet), the Nuxt app sets **non-secure** auth cookies so sessions work; switch to HTTPS in production and cookies become `Secure` automatically.
 

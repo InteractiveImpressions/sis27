@@ -1,0 +1,14 @@
+.docker-build-cache
+.git
+.github
+.nuxt
+.output
+.next
+node_modules
+apps/*/node_modules
+apps/web/.nuxt
+apps/web/.output
+apps/contact/.next
+packages/platform/dist
+infra/supabase/docker/volumes
+*.log

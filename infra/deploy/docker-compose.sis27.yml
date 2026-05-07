@@ -31,6 +31,10 @@ services:
     build:
       context: ${SIS27_ROOT:?Set SIS27_ROOT to the repository root (see infra/deploy/scripts/compose.sh)}
       dockerfile: apps/web/Dockerfile
+      cache_from:
+        - type=local,src=${SIS27_DOCKER_BUILD_CACHE_DIR:-.docker-build-cache}/web
+      cache_to:
+        - type=local,dest=${SIS27_DOCKER_BUILD_CACHE_DIR:-.docker-build-cache}/web,mode=max
       args:
         NUXT_PUBLIC_SUPABASE_URL: ${SIS27_PUBLIC_URL}
         NUXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
@@ -49,6 +53,10 @@ services:
     build:
       context: ${SIS27_ROOT:?Set SIS27_ROOT to the repository root (see infra/deploy/scripts/compose.sh)}
       dockerfile: apps/contact/Dockerfile
+      cache_from:
+        - type=local,src=${SIS27_DOCKER_BUILD_CACHE_DIR:-.docker-build-cache}/contact
+      cache_to:
+        - type=local,dest=${SIS27_DOCKER_BUILD_CACHE_DIR:-.docker-build-cache}/contact,mode=max
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${SIS27_PUBLIC_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}

@@ -1,11 +1,14 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS build
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/
 COPY packages/platform/package.json packages/platform/
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=sis27-pnpm-store,target=/pnpm/store \
+  pnpm config set store-dir /pnpm/store && pnpm install --frozen-lockfile
 COPY packages/platform packages/platform
 COPY apps/web apps/web
 RUN pnpm --filter @sis27/platform build

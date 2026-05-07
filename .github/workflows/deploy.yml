@@ -54,6 +54,7 @@ jobs:
             --exclude=apps/web/.output \
             --exclude=apps/contact/.next \
             --exclude=packages/platform/dist \
+            --exclude=.docker-build-cache \
             --exclude=infra/supabase/docker/volumes/db/data \
             .
           gcloud compute scp /tmp/sis27-sync.tgz "${GCP_INSTANCE}:~/sis27-sync.tgz" \
