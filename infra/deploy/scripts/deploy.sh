@@ -36,5 +36,5 @@ for _ in {1..45}; do
 done
 
 "$ROOT/infra/deploy/scripts/migrate.sh"
-"$ROOT/scripts/migrate-contact.sh"
+SIS27_MIGRATE_USE_DEPLOY_COMPOSE=1 "$ROOT/scripts/migrate-apps.sh"
 echo "Deploy complete."

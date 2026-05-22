@@ -41,7 +41,7 @@ pnpm dev
 pnpm dev:down
 ```
 
-`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies SQL migrations from [`supabase/migrations`](supabase/migrations) and [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Contact migrations run under the app-owned `contact_migrator` role after platform migrations create the shared roles/schema. Open the dashboard at `http://localhost:3000` and Contact at `http://localhost:3001/contact`.
+`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies platform SQL from [`supabase/migrations`](supabase/migrations) then satellite app SQL from `apps/*/supabase/migrations` (including Contact), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Open the dashboard at `http://localhost:3000` and Contact at `http://localhost:3001/contact`.
 
 Other scripts: **`pnpm dev:web-stack`** — stack + Nuxt only (no Contact). **`pnpm dev:contact`** — stack + Contact only (or **`pnpm dev`** inside `apps/contact` using the sibling `sis27` checkout). **`pnpm dev:web`** — Nuxt only (when Supabase is already running elsewhere).
 
@@ -92,18 +92,18 @@ SIS27_DEV_FRONTEND=contact pnpm dev # same as pnpm dev:contact
 
    ```bash
    ./infra/deploy/scripts/migrate.sh
-   ./scripts/migrate-contact.sh
+   ./scripts/migrate-apps.sh
    ```
 
-   Or run [`infra/deploy/scripts/deploy.sh`](infra/deploy/scripts/deploy.sh), which applies both platform and contact migrations.
+   Or run [`infra/deploy/scripts/deploy.sh`](infra/deploy/scripts/deploy.sh), which applies platform and app migrations.
 
 Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** app for `/contact`, and **Kong** for `/auth/*`, `/rest/*`, `/realtime/*`, etc. The Nuxt app uses `NUXT_PUBLIC_SUPABASE_URL` / `NUXT_PUBLIC_SUPABASE_ANON_KEY` (set in Compose from `SIS27_PUBLIC_URL` and `ANON_KEY`). The Contact image receives the same public values as `NEXT_PUBLIC_*` build args.
 
 ## Platform roles and Contact app
 
 - **Roles** are stored in Postgres (`public.roles`, `public.user_roles`). Users with **no roles** cannot use the dashboard beyond sign-in (they see an access-denied message). The Contact app requires `contact:user` or `contact:admin`.
-- **Database ownership:** platform migrations own shared `public` objects (`profiles`, `roles`, `user_roles`, role helper functions, Auth signup triggers). The Contact satellite owns the dedicated `contact` schema through the no-login `contact_migrator` role; its tables, functions, triggers, policies, and grants live there and are applied under that role.
-- **Supabase API schemas:** Contact uses `contact.entries` and `contact.users_public_profile(...)`, so `PGRST_DB_SCHEMAS` must include `contact` (for example `public,contact,storage,graphql_public`).
+- **Database ownership:** platform migrations own shared `public` objects (`profiles`, `roles`, `user_roles`, role helper functions, Auth signup triggers). The Contact satellite owns schema `app_contact`, role `contact_migrator`, and all Contact DDL under [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations). The root repo only runs those files generically after platform migrations.
+- **Supabase API schemas:** Contact uses `app_contact.entries` and `app_contact.users_public_profile(...)`, so `PGRST_DB_SCHEMAS` must include `app_contact` (for example `public,app_contact,storage,graphql_public`).
 - **Manual role grant (POC)** — run as `postgres` or in Supabase Studio SQL, after you know the user’s UUID from `auth.users`:
 
   ```sql

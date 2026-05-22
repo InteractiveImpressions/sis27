@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
+    "predev": "pnpm --filter @sis27/platform build",
     "dev": "./scripts/dev.sh",
     "dev:down": "./scripts/dev-down.sh",
     "dev:web": "pnpm --filter @sis27/web dev",

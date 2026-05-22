@@ -7,11 +7,7 @@ create table if not exists public.roles (
   created_at timestamptz not null default now()
 );
 
-comment on table public.roles is 'Platform role catalog; referenced by user_roles.';
-
-insert into public.roles (name)
-values ('contact:user'), ('contact:admin')
-on conflict (name) do nothing;
+comment on table public.roles is 'Platform role catalog; referenced by user_roles. Satellite apps register their role names in app migrations.';
 
 create table if not exists public.user_roles (
   user_id uuid not null references auth.users (id) on delete cascade,

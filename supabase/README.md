@@ -5,7 +5,7 @@ SQL in `migrations/` is applied in filename order by `infra/deploy/scripts/migra
 ## Conventions
 
 - **RLS first**: every new table must have `ENABLE ROW LEVEL SECURITY` and explicit policies before shipping.
-- **Ownership**: built-in platform tables live here. Future satellite apps should keep migrations in their own repo and run them in their pipeline, or contribute folders under `supabase/migrations/apps/<app-name>/` once that process is agreed.
+- **Ownership**: built-in platform tables live here. Satellite apps keep migrations in `apps/<app>/supabase/migrations` in their own repo or submodule; the platform applies them via [`scripts/migrate-apps.sh`](../scripts/migrate-apps.sh) without app-specific SQL in this folder.
 - **Idempotency**: prefer `if not exists` / guarded drops for POC iterations; tighten for production.
 
 ## Local / VM apply
@@ -14,11 +14,12 @@ With the stack running:
 
 ```bash
 ./infra/deploy/scripts/migrate.sh
+./scripts/migrate-apps.sh
 ```
 
-## Contact app migrations
+## Satellite app migrations
 
-The **Contact** satellite app owns [`apps/contact/supabase/migrations`](../apps/contact/supabase/migrations). Those files are **not** in this folder; they are applied separately:
+Each app under `apps/<name>/supabase/migrations/` owns its schema bootstrap and DDL (for example Contact creates `contact_migrator`, schema `app_contact`, tables, and policies). The root project does not duplicate that logic in `supabase/migrations`.
 
-- **Local `pnpm dev`**: [`scripts/dev.sh`](../scripts/dev.sh) applies them after `supabase/migrations/*.sql`.
-- **VM deploy**: [`infra/deploy/scripts/deploy.sh`](../infra/deploy/scripts/deploy.sh) runs [`scripts/migrate-contact.sh`](../scripts/migrate-contact.sh) after `migrate.sh`.
+- **Local `pnpm dev`**: [`scripts/dev.sh`](../scripts/dev.sh) applies platform migrations, then every `apps/*/supabase/migrations/*.sql`.
+- **VM deploy**: [`infra/deploy/scripts/deploy.sh`](../infra/deploy/scripts/deploy.sh) runs [`scripts/migrate-apps.sh`](../scripts/migrate-apps.sh) after `migrate.sh`.

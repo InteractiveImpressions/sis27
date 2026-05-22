@@ -7,11 +7,6 @@ cd "$ROOT"
 # all = Nuxt + Contact (default). web = stack + Nuxt only. contact = stack + Contact only.
 SIS27_DEV_FRONTEND="${SIS27_DEV_FRONTEND:-all}"
 CONTACT_DIR="${SIS27_CONTACT_APP_DIR:-$ROOT/apps/contact}"
-CONTACT_MIGRATIONS="${SIS27_CONTACT_MIGRATIONS:-}"
-if [[ -z "$CONTACT_MIGRATIONS" && -d "$ROOT/apps/contact/supabase/migrations" ]]; then
-  CONTACT_MIGRATIONS="$ROOT/apps/contact/supabase/migrations"
-fi
-
 PROJECT_NAME="${SIS27_DEV_PROJECT_NAME:-sis27-dev}"
 ENV_FILE="${SIS27_DEV_ENV_FILE:-$ROOT/infra/supabase/docker/.env}"
 
@@ -67,16 +62,17 @@ for migration in "$ROOT"/supabase/migrations/*.sql; do
   "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$migration" >/dev/null
 done
 
-if [[ -n "$CONTACT_MIGRATIONS" && -d "$CONTACT_MIGRATIONS" ]]; then
-  for migration in "$CONTACT_MIGRATIONS"/*.sql; do
-    echo "  -> contact/$(basename "$migration")"
-    {
-      printf 'set role contact_migrator;\n'
-      cat "$migration"
-      printf '\nreset role;\n'
-    } | "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres >/dev/null
+for app_dir in "$ROOT"/apps/*/; do
+  migrations_dir="$app_dir/supabase/migrations"
+  if [[ ! -d "$migrations_dir" ]]; then
+    continue
+  fi
+  app_name="$(basename "$app_dir")"
+  for migration in "$migrations_dir"/*.sql; do
+    echo "  -> $app_name/$(basename "$migration")"
+    "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$migration" >/dev/null
   done
-fi
+done
 shopt -u nullglob
 
 echo "Waiting for Supabase API gateway..."
