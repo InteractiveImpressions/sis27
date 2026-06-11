@@ -23,6 +23,13 @@
 		reverse_proxy {$SIS27_PROXY_CONTACT:127.0.0.1:3001}
 	}
 
+	@goals {
+		path /goals /goals/*
+	}
+	handle @goals {
+		reverse_proxy {$SIS27_PROXY_GOALS:127.0.0.1:3002}
+	}
+
 	handle {
 		reverse_proxy {$SIS27_PROXY_WEB:127.0.0.1:3000}
 	}

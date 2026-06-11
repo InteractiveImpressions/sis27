@@ -18,7 +18,7 @@ COMPOSE=(docker compose --env-file "$ENV_FILE" \
   -f infra/supabase/docker/docker-compose.yml \
   -f infra/deploy/docker-compose.sis27.yml)
 
-mkdir -p "$SIS27_DOCKER_BUILD_CACHE_DIR/web" "$SIS27_DOCKER_BUILD_CACHE_DIR/contact"
+mkdir -p "$SIS27_DOCKER_BUILD_CACHE_DIR/web" "$SIS27_DOCKER_BUILD_CACHE_DIR/contact" "$SIS27_DOCKER_BUILD_CACHE_DIR/goals"
 "${COMPOSE[@]}" up -d --build
 
 # Caddy bind-mounts `infra/deploy/Caddyfile`. If that file is replaced on disk (git pull, tar

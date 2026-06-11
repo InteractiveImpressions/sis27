@@ -4,9 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# all = Nuxt + Contact (default). web = stack + Nuxt only. contact = stack + Contact only.
+# all = Nuxt + Contact + Goals (default). web | contact | goals = stack + one app.
 SIS27_DEV_FRONTEND="${SIS27_DEV_FRONTEND:-all}"
 CONTACT_DIR="${SIS27_CONTACT_APP_DIR:-$ROOT/apps/contact}"
+GOALS_DIR="${SIS27_GOALS_APP_DIR:-$ROOT/apps/goals}"
 PROJECT_NAME="${SIS27_DEV_PROJECT_NAME:-sis27-dev}"
 ENV_FILE="${SIS27_DEV_ENV_FILE:-$ROOT/infra/supabase/docker/.env}"
 
@@ -33,8 +34,6 @@ cleanup() {
   CLEANED_UP=1
   echo
   echo "Stopping local SIS27 Docker stack ($PROJECT_NAME)..."
-  # After `cd` into apps/contact (standalone or submodule), return to platform root so the
-  # shared stack-down helper (@sis27/platform) resolves compose paths correctly.
   cd "$ROOT"
   export SIS27_ROOT="$ROOT"
   pnpm exec sis27-stack-down
@@ -76,6 +75,7 @@ done
 shopt -u nullglob
 
 echo "Waiting for Supabase API gateway..."
+status=""
 for _ in {1..60}; do
   status="$(curl -sS --max-time 2 -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/auth/v1/health || true)"
   if [[ "$status" =~ ^(200|401)$ ]]; then
@@ -89,41 +89,93 @@ if [[ "$status" != "200" && "$status" != "401" ]]; then
   exit 1
 fi
 
+has_contact=0
+has_goals=0
+[[ -f "$CONTACT_DIR/package.json" ]] && has_contact=1
+[[ -f "$GOALS_DIR/package.json" ]] && has_goals=1
+
+run_single_frontend() {
+  local which="$1"
+  case "$which" in
+    contact)
+      if [[ "$has_contact" -eq 0 ]]; then
+        echo "Contact app not found at $CONTACT_DIR. Set SIS27_CONTACT_APP_DIR or init apps/contact submodule." >&2
+        exit 1
+      fi
+      echo "Starting Contact dev server (Next.js on port 3001)..."
+      cd "$CONTACT_DIR"
+      pnpm exec next dev --turbopack -p 3001
+      ;;
+    goals)
+      if [[ "$has_goals" -eq 0 ]]; then
+        echo "Goals app not found at $GOALS_DIR. Set SIS27_GOALS_APP_DIR or init apps/goals submodule." >&2
+        exit 1
+      fi
+      echo "Starting Goals dev server (Next.js on port 3002)..."
+      cd "$GOALS_DIR"
+      pnpm exec next dev --turbopack -p 3002
+      ;;
+    web)
+      echo "Starting Nuxt dev server..."
+      cd "$ROOT"
+      pnpm --filter @sis27/web dev
+      ;;
+    *)
+      echo "Unknown frontend: $which" >&2
+      exit 1
+      ;;
+  esac
+}
+
 set +e
 if [[ "$SIS27_DEV_FRONTEND" == "contact" ]]; then
-  if [[ ! -f "$CONTACT_DIR/package.json" ]]; then
-    echo "Contact app not found at $CONTACT_DIR. Set SIS27_CONTACT_APP_DIR to the Contact package root." >&2
-    exit 1
-  fi
-  echo "Starting Contact dev server (Next.js on port 3001)..."
-  cd "$CONTACT_DIR"
-  pnpm exec next dev --turbopack -p 3001
+  run_single_frontend contact
+  DEV_EXIT_CODE="$?"
+elif [[ "$SIS27_DEV_FRONTEND" == "goals" ]]; then
+  run_single_frontend goals
   DEV_EXIT_CODE="$?"
 elif [[ "$SIS27_DEV_FRONTEND" == "web" ]]; then
-  echo "Starting Nuxt dev server..."
-  cd "$ROOT"
-  pnpm --filter @sis27/web dev
+  run_single_frontend web
   DEV_EXIT_CODE="$?"
 else
-  # Default "all": dashboard + Contact (split ports; see README / @sis27/platform dev origins).
-  if [[ ! -f "$CONTACT_DIR/package.json" ]]; then
-    echo "Contact app not found at $CONTACT_DIR — starting Nuxt only. Initialize apps/contact (submodule) for full stack." >&2
-    cd "$ROOT"
-    pnpm --filter @sis27/web dev
+  cd "$ROOT"
+  concurrent_args=()
+  concurrent_names=()
+  concurrent_colors=()
+
+  concurrent_args+=("pnpm --filter @sis27/web dev")
+  concurrent_names+=("web")
+  concurrent_colors+=("blue")
+
+  if [[ "$has_contact" -eq 1 ]]; then
+    concurrent_args+=("pnpm --filter @sis27/contact dev:next")
+    concurrent_names+=("contact")
+    concurrent_colors+=("magenta")
+  else
+    echo "Contact app not found at $CONTACT_DIR — skipping Contact dev server." >&2
+  fi
+
+  if [[ "$has_goals" -eq 1 ]]; then
+    concurrent_args+=("pnpm --filter @sis27/goals dev:next")
+    concurrent_names+=("goals")
+    concurrent_colors+=("green")
+  else
+    echo "Goals app not found at $GOALS_DIR — skipping Goals dev server." >&2
+  fi
+
+  if ((${#concurrent_args[@]} == 1)); then
+    eval "${concurrent_args[0]}"
     DEV_EXIT_CODE="$?"
   else
-    echo "Starting Nuxt (3000) and Contact (3001) dev servers..."
-    cd "$ROOT"
-    pnpm exec concurrently --kill-others-on-fail -n web,contact -c blue,magenta \
-      "pnpm --filter @sis27/web dev" \
-      "pnpm --filter @sis27/contact dev:next"
+    names_csv="$(IFS=,; echo "${concurrent_names[*]}")"
+    colors_csv="$(IFS=,; echo "${concurrent_colors[*]}")"
+    echo "Starting dev servers: ${names_csv}"
+    pnpm exec concurrently --kill-others-on-fail -n "$names_csv" -c "$colors_csv" "${concurrent_args[@]}"
     DEV_EXIT_CODE="$?"
   fi
 fi
 set -e
 
-# 130 = 128 + SIGINT (Ctrl+C), 143 = 128 + SIGTERM — normal ways to stop a dev server.
-# After EXIT trap runs `docker compose down`, treat these as a clean shutdown (exit 0).
 if [[ "$DEV_EXIT_CODE" -eq 130 || "$DEV_EXIT_CODE" -eq 143 ]]; then
   exit 0
 fi

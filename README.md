@@ -1,6 +1,6 @@
 # SIS27 — internal data platform (POC)
 
-Monorepo for a minimal on-prem stack: **self-hosted Supabase** (Postgres + Auth + Kong + …), a **Nuxt** dashboard (auth + platform roles), a **Next.js** Contact app at `/contact`, SQL **migrations** with RLS, and **Docker Compose** + **GitHub Actions** deploy to a single VM.
+Monorepo for a minimal on-prem stack: **self-hosted Supabase** (Postgres + Auth + Kong + …), a **Nuxt** dashboard (auth + platform roles), **Next.js** satellite apps at `/contact` and `/goals`, SQL **migrations** with RLS, and **Docker Compose** + **GitHub Actions** deploy to a single VM.
 
 ## Project context
 
@@ -17,7 +17,8 @@ For this POC, prefer the simplest useful implementation. The repo exists to expl
 | Area | Path |
 |------|------|
 | Dashboard app | [`apps/web`](apps/web) |
-| Contact app (Next.js submodule) | [`InteractiveImpressions/sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact) checked out at [`apps/contact`](apps/contact) |
+| Contact app (Next.js submodule) | [`InteractiveImpressions/sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact) at [`apps/contact`](apps/contact) |
+| Goals app (Next.js submodule) | [`InteractiveImpressions/sis27-goals`](https://github.com/InteractiveImpressions/sis27-goals) at [`apps/goals`](apps/goals) |
 | Shared npm contracts | [`packages/platform`](packages/platform) (`@sis27/platform`) |
 | SQL migrations | [`supabase/migrations`](supabase/migrations) |
 | Vendored Supabase Docker stack | [`infra/supabase/docker`](infra/supabase/docker) |
@@ -41,13 +42,13 @@ pnpm dev
 pnpm dev:down
 ```
 
-`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies platform SQL from [`supabase/migrations`](supabase/migrations) then satellite app SQL from `apps/*/supabase/migrations` (including Contact), then runs **Nuxt on port 3000** and the **Contact Next app on port 3001** together (via [`concurrently`](https://www.npmjs.com/package/concurrently)). Open the dashboard at `http://localhost:3000` and Contact at `http://localhost:3001/contact`.
+`pnpm dev` is the centralized local-dev entrypoint. It starts the self-hosted Supabase Docker stack, waits for Postgres and Kong, applies platform SQL from [`supabase/migrations`](supabase/migrations) then satellite app SQL from `apps/*/supabase/migrations`, then runs **Nuxt on port 3000** and any initialized satellite Next apps (**Contact** on **3001**, **Goals** on **3002**) via [`concurrently`](https://www.npmjs.com/package/concurrently). Open the dashboard at `http://localhost:3000`, Contact at `http://localhost:3001/contact`, and Goals at `http://localhost:3002/goals`.
 
-Other scripts: **`pnpm dev:web-stack`** — stack + Nuxt only (no Contact). **`pnpm dev:contact`** — stack + Contact only (or **`pnpm dev`** inside `apps/contact` using the sibling `sis27` checkout). **`pnpm dev:web`** — Nuxt only (when Supabase is already running elsewhere).
+Other scripts: **`pnpm dev:web-stack`** — stack + Nuxt only. **`pnpm dev:contact`** / **`pnpm dev:goals`** — stack + one satellite (or **`pnpm dev`** inside that app directory). **`pnpm dev:web`** — Nuxt only (when Supabase is already running elsewhere).
 
-**Split dev ports (default):** the dashboard links to **`http://localhost:3001/contact`** in Nuxt development mode, and Contact links back to **`http://localhost:3000/`**, so cross-app navigation matches `pnpm dev:web` (port 3000) and Contact on 3001 while keeping auth cookies on the same browser host. Override with **`NUXT_PUBLIC_CONTACT_DEV_ORIGIN`** (dashboard → contact) or **`NEXT_PUBLIC_DASHBOARD_DEV_URL`** (contact → dashboard) if you use different ports. In production (single origin behind Caddy) both apps use **relative** `/` and `/contact` only.
+**Split dev ports (default):** the dashboard links to full dev URLs for satellites in Nuxt development mode (`http://localhost:3001/contact`, `http://localhost:3002/goals`). Override with **`NUXT_PUBLIC_CONTACT_DEV_ORIGIN`**, **`NUXT_PUBLIC_GOALS_DEV_ORIGIN`**, or **`NEXT_PUBLIC_DASHBOARD_DEV_URL`** on satellite apps if you use different ports. In production (single origin behind Caddy) all apps use **relative** paths only (`/`, `/contact`, `/goals`).
 
-**Prod-like local origin (optional):** with the stack and both dev servers running (`pnpm dev`), start Caddy on **`http://127.0.0.1:8888/`** using the same path routing as production ([`infra/deploy/Caddyfile`](infra/deploy/Caddyfile)): **`pnpm dev:caddy`** (requires [Caddy](https://caddyserver.com/docs/install) on your PATH). Then use **`http://127.0.0.1:8888/`** and **`http://127.0.0.1:8888/contact`** so behaviour matches the VM. For a Caddy container instead of a host binary, set `SIS27_PROXY_*` to `host.docker.internal:PORT` and add Docker’s `host-gateway` host mapping (see comments in [`infra/dev/Caddyfile`](infra/dev/Caddyfile)).
+**Prod-like local origin (optional):** with the stack and dev servers running (`pnpm dev`), start Caddy on **`http://127.0.0.1:8888/`** using the same path routing as production ([`infra/deploy/Caddyfile`](infra/deploy/Caddyfile)): **`pnpm dev:caddy`**. Then use **`http://127.0.0.1:8888/`**, **`/contact`**, and **`/goals`**. For a Caddy container, set `SIS27_PROXY_*` env vars (see [`infra/dev/Caddyfile`](infra/dev/Caddyfile)).
 
 `pnpm dev:down` stops and removes the local SIS27 Docker Compose stack started for development.
 
@@ -58,10 +59,11 @@ Useful overrides:
 ```bash
 SIS27_DEV_PROJECT_NAME=sis27-dev pnpm dev
 SIS27_DEV_ENV_FILE=/absolute/path/to/.env pnpm dev
-# Optional: which dev servers after migrations (default is all = Nuxt + Contact)
+# Optional: which dev servers after migrations (default is all = Nuxt + satellites)
 SIS27_DEV_FRONTEND=all pnpm dev    # same as plain pnpm dev
 SIS27_DEV_FRONTEND=web pnpm dev     # same as pnpm dev:web-stack
 SIS27_DEV_FRONTEND=contact pnpm dev # same as pnpm dev:contact
+SIS27_DEV_FRONTEND=goals pnpm dev   # same as pnpm dev:goals
 ```
 
 ## One-time Supabase env (self-hosted)
@@ -97,13 +99,13 @@ SIS27_DEV_FRONTEND=contact pnpm dev # same as pnpm dev:contact
 
    Or run [`infra/deploy/scripts/deploy.sh`](infra/deploy/scripts/deploy.sh), which applies platform and app migrations.
 
-Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** app for `/contact`, and **Kong** for `/auth/*`, `/rest/*`, `/realtime/*`, etc. The Nuxt app uses `NUXT_PUBLIC_SUPABASE_URL` / `NUXT_PUBLIC_SUPABASE_ANON_KEY` (set in Compose from `SIS27_PUBLIC_URL` and `ANON_KEY`). The Contact image receives the same public values as `NEXT_PUBLIC_*` build args.
+Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** for `/contact`, Next **Goals** for `/goals`, and **Kong** for `/auth/*`, `/rest/*`, `/realtime/*`, etc. The Nuxt app uses `NUXT_PUBLIC_SUPABASE_URL` / `NUXT_PUBLIC_SUPABASE_ANON_KEY` (set in Compose from `SIS27_PUBLIC_URL` and `ANON_KEY`). Satellite images receive the same public values as `NEXT_PUBLIC_*` build args.
 
-## Platform roles and Contact app
+## Platform roles and satellite apps
 
-- **Roles** are stored in Postgres (`public.roles`, `public.user_roles`). Users with **no roles** cannot use the dashboard beyond sign-in (they see an access-denied message). The Contact app requires `contact:user` or `contact:admin`.
-- **Database ownership:** platform migrations own shared `public` objects (`profiles`, `roles`, `user_roles`, role helper functions, Auth signup triggers). The Contact satellite owns schema `app_contact`, role `contact_migrator`, and all Contact DDL under [`apps/contact/supabase/migrations`](apps/contact/supabase/migrations). The root repo only runs those files generically after platform migrations.
-- **Supabase API schemas:** Contact uses `app_contact.entries` and `app_contact.users_public_profile(...)`, so `PGRST_DB_SCHEMAS` must include `app_contact` (for example `public,app_contact,storage,graphql_public`).
+- **Roles** are stored in Postgres (`public.roles`, `public.user_roles`). Users with **no roles** cannot use the dashboard beyond sign-in (they see an access-denied message). **Contact** requires `contact:user` or `contact:admin`. **Goals** requires `goals:user` or `goals:admin`.
+- **Database ownership:** platform migrations own shared `public` objects (`profiles`, `roles`, `user_roles`, role helper functions, Auth signup triggers). Each satellite owns its schema, migrator role, and DDL under `apps/<app>/supabase/migrations`. The root repo only runs those files generically after platform migrations.
+- **Supabase API schemas:** satellite schemas must appear in `PGRST_DB_SCHEMAS`, for example `public,app_contact,app_goals,storage,graphql_public`.
 - **Manual role grant (POC)** — run as `postgres` or in Supabase Studio SQL, after you know the user’s UUID from `auth.users`:
 
   ```sql
@@ -112,9 +114,9 @@ Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** app
   on conflict (user_id, role_id) do nothing;
   ```
 
-  Replace `contact:user` with `contact:admin` when needed.
+  Replace `contact:user` with `contact:admin` when needed. For Goals, use `goals:user` or `goals:admin`.
 
-- **`@sis27/platform`**: shared TypeScript constants and helpers; publish to Google Artifact Registry using [`packages/platform/README.md`](packages/platform/README.md). **Contact** depends on **`^0.1.0`**; the repo root [`.npmrc`](.npmrc) sets **`link-workspace-packages`** and **`prefer-workspace-packages`** so `pnpm install` at the monorepo root always links [`packages/platform`](packages/platform). Standalone **sis27-contact** uses its own **`.npmrc`** so **`@sis27`** resolves from Artifact Registry.
+- **`@sis27/platform`**: shared TypeScript constants and helpers; publish to Google Artifact Registry using [`packages/platform/README.md`](packages/platform/README.md). Satellite apps depend on **`^0.1.0`**; the repo root [`.npmrc`](.npmrc) links [`packages/platform`](packages/platform) in the monorepo. Standalone satellite clones use their own **`.npmrc`** for Artifact Registry.
 
 **Supabase Studio** is not exposed on `/` anymore (Caddy sends `/` to Nuxt). Use `docker compose … port` or add a dedicated route later if you need the dashboard on the public host.
 
@@ -139,7 +141,7 @@ cd /opt/sis27
 ./infra/deploy/scripts/deploy.sh
 ```
 
-`deploy.sh` builds the **web** and **contact** images, starts the stack, waits for Postgres, and runs platform plus contact migrations. Docker BuildKit caches app image layers under `.docker-build-cache/` by default, so repeat `docker compose --build` deploys reuse dependency and build layers across runs. Set `SIS27_DOCKER_BUILD_CACHE_DIR=/path/to/cache` before running deploy scripts to move the cache, or remove that directory to force a cold rebuild.
+`deploy.sh` builds the **web**, **contact**, and **goals** images, starts the stack, waits for Postgres, and runs platform plus satellite migrations. Docker BuildKit caches app image layers under `.docker-build-cache/` by default, so repeat `docker compose --build` deploys reuse dependency and build layers across runs. Set `SIS27_DOCKER_BUILD_CACHE_DIR=/path/to/cache` before running deploy scripts to move the cache, or remove that directory to force a cold rebuild.
 
 The web image **must** receive `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_PUBLIC_SUPABASE_ANON_KEY` as **Docker build args** (wired in [`infra/deploy/docker-compose.sis27.yml`](infra/deploy/docker-compose.sis27.yml)) so the browser bundle uses the same anon JWT as Kong. Without that, Kong returns **401 Unauthorized** for Auth/API calls. On **HTTP** (no TLS yet), the Nuxt app sets **non-secure** auth cookies so sessions work; switch to HTTPS in production and cookies become `Secure` automatically.
 
@@ -177,13 +179,14 @@ Use the same values as GitHub Actions secrets (see below).
 - **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): install, lint, typecheck, build on PRs and `main`.
 - **Deploy** ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)): on push to `main`, SSH via `gcloud` and run `git pull` + `deploy.sh`.
 
-The **Contact** app is a private submodule ([`sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact)). CI and deploy use a **read-only deploy key** on that repo and the matching private key in repository secret **`SIS27_CONTACT_DEPLOY_KEY`** (see workflow `webfactory/ssh-agent` + manual `git submodule update`). Pull requests from forks cannot use that secret; run CI from branches on this repo or make the submodule public.
+**Contact** and **Goals** are private submodules ([`sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact), [`sis27-goals`](https://github.com/InteractiveImpressions/sis27-goals)). CI and deploy use read-only deploy keys in **`SIS27_CONTACT_DEPLOY_KEY`** and **`SIS27_GOALS_DEPLOY_KEY`** (see workflow `webfactory/ssh-agent` + `git submodule update`). Pull requests from forks cannot use those secrets; run CI from branches on this repo or make the submodules public.
 
 ### Repository secrets (CI + deploy)
 
 | Secret | Example / notes |
 |--------|------------------|
 | `SIS27_CONTACT_DEPLOY_KEY` | PEM for a **read-only** deploy key on [`sis27-contact`](https://github.com/InteractiveImpressions/sis27-contact); required so CI/deploy can clone `apps/contact`. |
+| `SIS27_GOALS_DEPLOY_KEY` | PEM for a **read-only** deploy key on [`sis27-goals`](https://github.com/InteractiveImpressions/sis27-goals); required so CI/deploy can clone `apps/goals`. |
 | `GCP_SA_KEY` | JSON for a service account that can use `gcloud compute ssh` (see [Google’s SSH guide](https://cloud.google.com/compute/docs/connect/standard-ssh)). |
 | `GCP_PROJECT` | `sis27-495603` |
 | `GCP_ZONE` | `europe-west3-c` |

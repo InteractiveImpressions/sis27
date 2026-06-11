@@ -9,6 +9,7 @@
     "dev:web": "pnpm --filter @sis27/web dev",
     "dev:web-stack": "SIS27_DEV_FRONTEND=web ./scripts/dev.sh",
     "dev:contact": "SIS27_DEV_FRONTEND=contact ./scripts/dev.sh",
+    "dev:goals": "SIS27_DEV_FRONTEND=goals ./scripts/dev.sh",
     "dev:caddy": "./scripts/dev-caddy.sh",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",

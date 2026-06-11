@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { contactAppHref, hasContactAccess } from "@sis27/platform";
+import { contactAppHref, goalsAppHref, hasContactAccess, hasGoalsAccess } from "@sis27/platform";
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
@@ -26,10 +26,17 @@ const displayUsername = computed(() => {
 });
 
 const showContactLink = computed(() => hasContactAccess(roles.value));
+const showGoalsLink = computed(() => hasGoalsAccess(roles.value));
 
 const contactAppUrl = computed(() =>
   contactAppHref({
     contactDevOrigin: runtimeConfig.public.contactDevOrigin as string | undefined,
+  }),
+);
+
+const goalsAppUrl = computed(() =>
+  goalsAppHref({
+    goalsDevOrigin: runtimeConfig.public.goalsDevOrigin as string | undefined,
   }),
 );
 
@@ -127,11 +134,15 @@ async function signOut() {
       <p class="welcome__text">Welcome, <strong>{{ displayUsername }}</strong>!</p>
       <p class="roles">Roles: <code>{{ roles.join(", ") }}</code></p>
 
-      <div v-if="showContactLink" class="apps">
+      <div v-if="showContactLink || showGoalsLink" class="apps">
         <p class="apps__title">Apps</p>
-        <a class="app-card" :href="contactAppUrl">
+        <a v-if="showContactLink" class="app-card" :href="contactAppUrl">
           <span class="app-card__name">Contact</span>
           <span class="app-card__hint">Open directory and manage your contact details</span>
+        </a>
+        <a v-if="showGoalsLink" class="app-card" :href="goalsAppUrl">
+          <span class="app-card__name">Goals</span>
+          <span class="app-card__hint">Manage goals and share them for review</span>
         </a>
       </div>
 

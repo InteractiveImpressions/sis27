@@ -1,3 +1,6 @@
 [submodule "apps/contact"]
 	path = apps/contact
 	url = git@github.com:InteractiveImpressions/sis27-contact.git
+[submodule "apps/goals"]
+	path = apps/goals
+	url = git@github.com:InteractiveImpressions/sis27-goals.git

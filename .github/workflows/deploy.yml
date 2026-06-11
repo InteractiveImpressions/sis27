@@ -15,14 +15,16 @@ jobs:
     steps:
       - uses: webfactory/ssh-agent@v0.9.1
         with:
-          ssh-private-key: ${{ secrets.SIS27_CONTACT_DEPLOY_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SIS27_CONTACT_DEPLOY_KEY }}
+            ${{ secrets.SIS27_GOALS_DEPLOY_KEY }}
 
       - uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: 1
 
-      - name: Init git submodules (Contact)
+      - name: Init git submodules (Contact, Goals)
         run: |
           set -euo pipefail
           git submodule sync --recursive
@@ -49,10 +51,12 @@ jobs:
             --exclude=node_modules \
             --exclude=apps/web/node_modules \
             --exclude=apps/contact/node_modules \
+            --exclude=apps/goals/node_modules \
             --exclude=packages/platform/node_modules \
             --exclude=apps/web/.nuxt \
             --exclude=apps/web/.output \
             --exclude=apps/contact/.next \
+            --exclude=apps/goals/.next \
             --exclude=packages/platform/dist \
             --exclude=.docker-build-cache \
             --exclude=infra/supabase/docker/volumes/db/data \

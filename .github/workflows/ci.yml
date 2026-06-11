@@ -17,14 +17,16 @@ jobs:
       # cannot use a deploy key. Load the key first, then init submodules over SSH.
       - uses: webfactory/ssh-agent@v0.9.1
         with:
-          ssh-private-key: ${{ secrets.SIS27_CONTACT_DEPLOY_KEY }}
+          ssh-private-key: |
+            ${{ secrets.SIS27_CONTACT_DEPLOY_KEY }}
+            ${{ secrets.SIS27_GOALS_DEPLOY_KEY }}
 
       - uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: 1
 
-      - name: Init git submodules (Contact)
+      - name: Init git submodules (Contact, Goals)
         run: |
           set -euo pipefail
           git submodule sync --recursive

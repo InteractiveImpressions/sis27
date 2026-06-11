@@ -19,6 +19,13 @@
 		reverse_proxy contact:3000
 	}
 
+	@goals {
+		path /goals /goals/*
+	}
+	handle @goals {
+		reverse_proxy goals:3000
+	}
+
 	handle {
 		reverse_proxy web:3000
 	}

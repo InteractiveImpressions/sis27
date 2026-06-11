@@ -1,8 +1,11 @@
-/** Platform role names (must match Postgres seed in main repo migrations). */
+/** Platform role names (must match Postgres seed in app migrations). */
 export const ROLE_CONTACT_USER = "contact:user" as const;
 export const ROLE_CONTACT_ADMIN = "contact:admin" as const;
+export const ROLE_GOALS_USER = "goals:user" as const;
+export const ROLE_GOALS_ADMIN = "goals:admin" as const;
 
 export type ContactRole = typeof ROLE_CONTACT_USER | typeof ROLE_CONTACT_ADMIN;
+export type GoalsRole = typeof ROLE_GOALS_USER | typeof ROLE_GOALS_ADMIN;
 
 /** Contact satellite app id and default deployed path (same-origin under Caddy). */
 export const APP_CONTACT_ID = "contact" as const;
@@ -11,9 +14,17 @@ export const APP_CONTACT_BASE_PATH = "/contact" as const;
 /** Postgres schema for the Contact satellite (PostgREST + supabase.schema()). */
 export const APP_CONTACT_DB_SCHEMA = "app_contact" as const;
 
-/** Default dev origins when dashboard and Contact run on separate ports (see root README). */
+/** Goals satellite app id and default deployed path (same-origin under Caddy). */
+export const APP_GOALS_ID = "goals" as const;
+export const APP_GOALS_BASE_PATH = "/goals" as const;
+
+/** Postgres schema for the Goals satellite (PostgREST + supabase.schema()). */
+export const APP_GOALS_DB_SCHEMA = "app_goals" as const;
+
+/** Default dev origins when dashboard and satellites run on separate ports (see root README). */
 export const DEV_DASHBOARD_ORIGIN = "http://localhost:3000" as const;
 export const DEV_CONTACT_ORIGIN = "http://localhost:3001" as const;
+export const DEV_GOALS_ORIGIN = "http://localhost:3002" as const;
 
 /** Join origin (no trailing slash) and path (leading slash). */
 export function absoluteAppUrl(origin: string, path: string): string {
@@ -53,6 +64,29 @@ export function hasContactAdminRole(roles: readonly string[] | null | undefined)
 
 export function hasContactAccess(roles: readonly string[] | null | undefined): boolean {
   return hasContactUserRole(roles) || hasContactAdminRole(roles);
+}
+
+/**
+ * Link target for the Goals app from the dashboard.
+ * Production: same-origin relative path only. Local split dev: full URL when `goalsDevOrigin` is set.
+ */
+export function goalsAppHref(options?: { goalsDevOrigin?: string; basePath?: string }): string {
+  const basePath = options?.basePath ?? APP_GOALS_BASE_PATH;
+  const dev = options?.goalsDevOrigin?.trim();
+  if (dev) return absoluteAppUrl(dev, basePath);
+  return basePath;
+}
+
+export function hasGoalsUserRole(roles: readonly string[] | null | undefined): boolean {
+  return roles?.includes(ROLE_GOALS_USER) ?? false;
+}
+
+export function hasGoalsAdminRole(roles: readonly string[] | null | undefined): boolean {
+  return roles?.includes(ROLE_GOALS_ADMIN) ?? false;
+}
+
+export function hasGoalsAccess(roles: readonly string[] | null | undefined): boolean {
+  return hasGoalsUserRole(roles) || hasGoalsAdminRole(roles);
 }
 
 export type PublicSupabaseEnv = {
