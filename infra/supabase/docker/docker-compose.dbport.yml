@@ -1,0 +1,11 @@
+# Publishes the Postgres container on a host port so the Supabase CLI can apply
+# migrations directly. The supavisor pooler (host :5432) does not accept the plain
+# `postgres` superuser without TLS, which the CLI needs for DDL migrations; the db
+# container has SSL off, so the CLI connects with sslmode=disable. Bound to localhost.
+#
+# Layered into `docker compose` by scripts/dev.sh and infra/deploy/scripts/deploy.sh.
+# Override the port with SIS27_DB_MIGRATE_PORT (keep scripts/lib-db.sh in sync).
+services:
+  db:
+    ports:
+      - "127.0.0.1:${SIS27_DB_MIGRATE_PORT:-54322}:5432"

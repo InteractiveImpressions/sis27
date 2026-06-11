@@ -21,6 +21,7 @@ COMPOSE=(
   docker compose
   --env-file "$ENV_FILE"
   -f infra/supabase/docker/docker-compose.yml
+  -f infra/supabase/docker/docker-compose.dbport.yml
   -p "$PROJECT_NAME"
 )
 
@@ -54,25 +55,9 @@ done
 
 "${COMPOSE[@]}" exec -T db pg_isready -U postgres -d postgres >/dev/null
 
-echo "Applying local migrations..."
-shopt -s nullglob
-for migration in "$ROOT"/supabase/migrations/*.sql; do
-  echo "  -> $(basename "$migration")"
-  "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$migration" >/dev/null
-done
-
-for app_dir in "$ROOT"/apps/*/; do
-  migrations_dir="$app_dir/supabase/migrations"
-  if [[ ! -d "$migrations_dir" ]]; then
-    continue
-  fi
-  app_name="$(basename "$app_dir")"
-  for migration in "$migrations_dir"/*.sql; do
-    echo "  -> $app_name/$(basename "$migration")"
-    "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$migration" >/dev/null
-  done
-done
-shopt -u nullglob
+echo "Applying migrations via Supabase CLI (platform + apps, one shared history)..."
+SIS27_ROOT="$ROOT" ENV_FILE="$ENV_FILE" source "$ROOT/scripts/lib-db.sh"
+push_all
 
 echo "Waiting for Supabase API gateway..."
 status=""

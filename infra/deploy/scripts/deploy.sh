@@ -16,6 +16,7 @@ fi
 
 COMPOSE=(docker compose --env-file "$ENV_FILE" \
   -f infra/supabase/docker/docker-compose.yml \
+  -f infra/supabase/docker/docker-compose.dbport.yml \
   -f infra/deploy/docker-compose.sis27.yml)
 
 mkdir -p "$SIS27_DOCKER_BUILD_CACHE_DIR/web" "$SIS27_DOCKER_BUILD_CACHE_DIR/contact" "$SIS27_DOCKER_BUILD_CACHE_DIR/goals"
@@ -36,5 +37,4 @@ for _ in {1..45}; do
 done
 
 "$ROOT/infra/deploy/scripts/migrate.sh"
-SIS27_MIGRATE_USE_DEPLOY_COMPOSE=1 "$ROOT/scripts/migrate-apps.sh"
 echo "Deploy complete."

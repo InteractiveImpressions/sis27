@@ -1,0 +1,9 @@
+# Supabase CLI project for the SIS27 platform (shared infra): the `public` schema —
+# profiles, roles, has_role — plus the per-app migrator roles' prerequisites.
+# Used only for migration management (supabase db push / migration new) against the
+# vendored Docker stack in infra/supabase/docker; the runtime services are that stack,
+# not `supabase start`. See scripts/lib-db.sh. Push this BEFORE the per-app projects.
+project_id = "sis27"
+
+[db]
+major_version = 17

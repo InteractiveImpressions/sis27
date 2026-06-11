@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
+# Apply all SIS27 migrations (platform + every app) via the Supabase CLI as one shared
+# history, tracked in supabase_migrations.schema_migrations. Requires the stack running
+# with the db port published (deploy publishes it via the dbport overlay; see
+# infra/deploy/scripts/deploy.sh).
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-cd "$ROOT"
-export SIS27_ROOT="$ROOT"
+SIS27_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+export SIS27_ROOT
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sis27}"
-ENV_FILE="${ENV_FILE:-$ROOT/infra/supabase/docker/.env}"
+ENV_FILE="${ENV_FILE:-$SIS27_ROOT/infra/supabase/docker/.env}"
+export ENV_FILE
 
-COMPOSE=(docker compose --env-file "$ENV_FILE" \
-  -f infra/supabase/docker/docker-compose.yml \
-  -f infra/deploy/docker-compose.sis27.yml)
+source "$SIS27_ROOT/scripts/lib-db.sh"
 
-shopt -s nullglob
-files=("$ROOT"/supabase/migrations/*.sql)
-if ((${#files[@]} == 0)); then
-  echo "No migration files in supabase/migrations."
-  exit 0
-fi
-
-for f in "${files[@]}"; do
-  echo "Applying $(basename "$f")"
-  "${COMPOSE[@]}" exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <"$f"
-done
-
+push_all
 echo "Migrations finished."

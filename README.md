@@ -86,18 +86,18 @@ SIS27_DEV_FRONTEND=goals pnpm dev   # same as pnpm dev:goals
    export SIS27_ROOT="$(pwd)"
    docker compose --env-file infra/supabase/docker/.env \
      -f infra/supabase/docker/docker-compose.yml \
+     -f infra/supabase/docker/docker-compose.dbport.yml \
      -f infra/deploy/docker-compose.sis27.yml \
      -p sis27 up -d
    ```
 
-4. Apply SQL migrations:
+4. Apply migrations (Supabase CLI; platform + apps as one shared history — see [`supabase/README.md`](supabase/README.md)):
 
    ```bash
    ./infra/deploy/scripts/migrate.sh
-   ./scripts/migrate-apps.sh
    ```
 
-   Or run [`infra/deploy/scripts/deploy.sh`](infra/deploy/scripts/deploy.sh), which applies platform and app migrations.
+   Or run [`infra/deploy/scripts/deploy.sh`](infra/deploy/scripts/deploy.sh), which applies all migrations.
 
 Traffic flow: **browser → Caddy (:80)** → Nuxt for `/`, Next **Contact** for `/contact`, Next **Goals** for `/goals`, and **Kong** for `/auth/*`, `/rest/*`, `/realtime/*`, etc. The Nuxt app uses `NUXT_PUBLIC_SUPABASE_URL` / `NUXT_PUBLIC_SUPABASE_ANON_KEY` (set in Compose from `SIS27_PUBLIC_URL` and `ANON_KEY`). Satellite images receive the same public values as `NEXT_PUBLIC_*` build args.
 

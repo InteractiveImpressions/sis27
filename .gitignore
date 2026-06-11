@@ -30,3 +30,6 @@ npm-debug.log*
 # Misc
 coverage
 .turbo
+
+# Supabase CLI cache (downloaded standalone binary; see scripts/ensure-supabase-cli.sh)
+.cache/
