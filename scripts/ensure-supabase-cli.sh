@@ -34,14 +34,19 @@ esac
 
 cache_dir="$ROOT/.cache/supabase/$PINNED_VERSION"
 bin="$cache_dir/supabase"
-if [[ -x "$bin" ]]; then echo "$bin"; exit 0; fi
+# Require the co-located `supabase-go` too — a cache from an older extraction that grabbed
+# only the shim is incomplete and must be re-downloaded.
+if [[ -x "$bin" && -e "$cache_dir/supabase-go" ]]; then echo "$bin"; exit 0; fi
 
 mkdir -p "$cache_dir"
 asset="supabase_${PINNED_VERSION}_${os}_${arch}.tar.gz"
 url="https://github.com/supabase/cli/releases/download/v${PINNED_VERSION}/${asset}"
 log "Downloading Supabase CLI ${PINNED_VERSION} ($os/$arch)..."
 curl -fsSL "$url" -o "$cache_dir/cli.tar.gz"
-tar -xzf "$cache_dir/cli.tar.gz" -C "$cache_dir" supabase
+# Extract the whole archive: recent releases ship `supabase` as a shim that forwards to a
+# co-located `supabase-go` binary, so both must land in $cache_dir (extracting only
+# `supabase` leaves the shim unable to find `supabase-go`).
+tar -xzf "$cache_dir/cli.tar.gz" -C "$cache_dir"
 rm -f "$cache_dir/cli.tar.gz"
 chmod +x "$bin"
 echo "$bin"
