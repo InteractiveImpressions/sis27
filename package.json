@@ -12,6 +12,7 @@
     "dev:goals": "SIS27_DEV_FRONTEND=goals ./scripts/dev.sh",
     "dev:caddy": "./scripts/dev-caddy.sh",
     "db:new": "./scripts/db-new.sh",
+    "db:diff": "./scripts/db-diff.sh",
     "db:push": "./scripts/db-push.sh",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",

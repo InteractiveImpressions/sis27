@@ -45,6 +45,26 @@ pnpm db:new goals    add_goal_status   # -> apps/goals/supabase/migrations/<ts>_
 pnpm db:new contact  add_entry_field   # -> apps/contact/supabase/migrations/<ts>_...
 ```
 
+## Capture changes made directly in the DB
+
+If you changed the schema directly in the running database (Studio, psql, etc.), capture
+the drift into a new migration with `supabase db diff`:
+
+```bash
+pnpm db:diff goals    add_test_column   # -> apps/goals/supabase/migrations/<ts>_...
+pnpm db:diff platform add_audit_index   # -> supabase/migrations/<ts>_...
+```
+
+It diffs the migration history (applied to a throwaway shadow DB) against the live database
+and writes only the difference, scoped to that project's schema (`platform` → `public`,
+`<app>` → `app_<app>`; override with `SIS27_DIFF_SCHEMA=...`). Requires the stack running
+with the db port published, and Docker (for the shadow). If there's no drift it writes
+nothing.
+
+> **Review the output.** `db diff` (migra) captures schema structure — tables, columns,
+> constraints, indexes, **RLS policies**, **grants**, functions, triggers, views — but
+> **not** comments or table data. Review, adjust if needed, then `pnpm db:push`.
+
 ## Apply migrations
 
 The stack must be running with the db port published (`scripts/dev.sh` and the deploy do
