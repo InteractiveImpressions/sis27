@@ -129,6 +129,54 @@ Future satellite apps should follow the Contact pattern:
 - App-owned tables, functions, triggers, policies, indexes, and grants live in the app schema. They may reference approved platform objects such as `auth.users`, `public.profiles`, and `public.has_role(...)`, but they should not alter or drop platform-owned objects.
 - Any app schema used through Supabase clients must be listed in `PGRST_DB_SCHEMAS`, and client code should call it explicitly with `supabase.schema('<app>')`.
 
+## Database migrations
+
+Migrations are managed with the **Supabase CLI** and recorded in the `supabase_migrations.schema_migrations` tracking table, so each migration runs **once**. Each project keeps its own `supabase/migrations/` folder scoped to its own schema — platform in [`supabase/migrations`](supabase/migrations) (`public`), Contact in `apps/contact/supabase/migrations` (`app_contact`), Goals in `apps/goals/supabase/migrations` (`app_goals`). At apply time they are combined into one shared history and pushed together (the CLI allows only one history per database). Full detail and rationale: [`supabase/README.md`](supabase/README.md).
+
+The stack must be running with the db port published (`pnpm dev` and the deploy do this via [`infra/supabase/docker/docker-compose.dbport.yml`](infra/supabase/docker/docker-compose.dbport.yml), which exposes Postgres on `127.0.0.1:54322`). The Supabase CLI is a root dev dependency; on the VM it is downloaded on demand by [`scripts/ensure-supabase-cli.sh`](scripts/ensure-supabase-cli.sh).
+
+### Create a migration
+
+`pnpm db:new <target> <name>` scaffolds a timestamped SQL file in the right project's folder. The target is `platform` (main repo) or an app name (`contact`, `goals`):
+
+```bash
+pnpm db:new platform add_audit_log      # -> supabase/migrations/<ts>_add_audit_log.sql
+pnpm db:new goals    add_goal_status     # -> apps/goals/supabase/migrations/<ts>_...
+pnpm db:new contact  add_entry_field     # -> apps/contact/supabase/migrations/<ts>_...
+```
+
+Then write the DDL, scoped to that project's schema (e.g. `alter table app_goals.goals ...` for Goals, `public.*` for platform). New files are timestamped "now", so they sort after existing ones — keep cross-project dependencies in timestamp order (platform objects already predate the apps). Follow the [migration contract](#satellite-app-migration-contract): RLS on every table, no edits to platform-owned objects.
+
+### Capture changes made directly in the DB
+
+If you changed the schema directly in the running database (Studio, psql), capture the drift into a new migration with `pnpm db:diff <target> <name>`:
+
+```bash
+pnpm db:diff goals    add_goal_status     # diffs app_goals; writes the delta to apps/goals/supabase/migrations
+pnpm db:diff platform add_audit_index     # diffs public; writes to supabase/migrations
+```
+
+It diffs the migration history (applied to a throwaway shadow DB — needs Docker) against the live database and writes only the difference, scoped to that project's schema. It captures tables, columns, constraints, indexes, RLS policies, and grants — but **not** comments or table data. Review the output before committing.
+
+### Apply migrations
+
+```bash
+pnpm db:push        # apply platform + all apps as one shared history (idempotent; re-run is a no-op)
+```
+
+`pnpm dev` runs this automatically after the stack is healthy, and the deploy runs it via [`infra/deploy/scripts/migrate.sh`](infra/deploy/scripts/migrate.sh). On any database that doesn't already have the change, `db:push` both applies the SQL and records it in the ledger — that is the normal path for propagating a migration to teammates, CI, and production.
+
+**Note on the DB you edited directly:** if you made a manual change and then captured it with `db:diff`, the object already exists in that database, so `pnpm db:push` will fail trying to re-create it. Either reset that local DB and re-push from scratch, or record the migration as already-applied without re-running it:
+
+```bash
+source scripts/lib-db.sh
+"${SUPABASE_CMD[@]}" migration repair --status applied <migration_timestamp> --db-url "$DB_URL"
+```
+
+### Commit
+
+Platform migrations live in this repo. App migrations live in their submodules — commit the new file in `apps/<app>` (e.g. `sis27-contact` / `sis27-goals`) first, then bump the submodule pointer here.
+
 ## VM deploy layout
 
 Example layout on the instance:
